@@ -124,6 +124,7 @@ type TenantsResponseDto struct {
 
 // CreateTenantRequestDto is the body for creating a tenant.
 type CreateTenantRequestDto struct {
+	ID       string `json:"uuii"`
 	Name     string `json:"name"`
 	Document string `json:"document"`
 }
