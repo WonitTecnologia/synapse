@@ -300,6 +300,7 @@ const (
 type ChatvoltAgentItem struct {
 	ID          string                  `json:"id"`
 	Name        string                  `json:"name"`
+	IconUrl     *string                 `json:"iconUrl,omitempty"`
 	Description string                  `json:"description"`
 	ModelName   string                  `json:"modelName"`
 	Visibility  ChatvoltAgentVisibility `json:"visibility"`
