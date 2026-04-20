@@ -16,6 +16,9 @@ type ChatvoltCase interface {
 	// Query sends a message to a Chatvolt agent and returns its response.
 	// Set req.ConversationID to continue an existing conversation thread.
 	Query(ctx context.Context, req ChatvoltAgentQueryRequest) (*ChatvoltAgentQueryResponse, error)
+
+	// ListAgents returns all Chatvolt agents available for the authenticated tenant.
+	ListAgents(ctx context.Context) (*ListChatvoltAgentsResponse, error)
 }
 
 // ─── Implementation ───────────────────────────────────────────────────────────
@@ -39,6 +42,14 @@ func (c *chatvoltClient) Query(ctx context.Context, req ChatvoltAgentQueryReques
 	var out ChatvoltAgentQueryResponse
 	if err := c.http.post(ctx, pathChatvoltQuery, req, &out); err != nil {
 		return nil, fmt.Errorf("synapse/chatvolt.Query: %w", err)
+	}
+	return &out, nil
+}
+
+func (c *chatvoltClient) ListAgents(ctx context.Context) (*ListChatvoltAgentsResponse, error) {
+	var out ListChatvoltAgentsResponse
+	if err := c.http.get(ctx, pathChatvoltAgents, nil, &out); err != nil {
+		return nil, fmt.Errorf("synapse/chatvolt.ListAgents: %w", err)
 	}
 	return &out, nil
 }

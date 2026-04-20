@@ -65,4 +65,5 @@ const (
 const (
 	pathChatvoltConfig = "/api/catalog/application/chatvolt/config"
 	pathChatvoltQuery  = "/api/catalog/application/chatvolt/query"
+	pathChatvoltAgents = "/api/catalog/application/chatvolt/agents"
 )

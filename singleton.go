@@ -62,7 +62,7 @@ type Client struct {
 	// OpenAI covers the OpenAI integration (configure, chat, image analysis, transcription).
 	OpenAI OpenAICase
 
-	// Chatvolt covers the Chatvolt agent integration (configure + query).
+	// Chatvolt covers the Chatvolt agent integration (configure, query, list agents).
 	Chatvolt ChatvoltCase
 }
 

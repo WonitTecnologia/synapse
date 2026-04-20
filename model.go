@@ -288,6 +288,28 @@ type ChatvoltAgentQueryRequest struct {
 	Contact   *ChatvoltContact `json:"contact,omitempty"`
 }
 
+// ChatvoltAgentVisibility indicates whether a Chatvolt agent is publicly accessible.
+type ChatvoltAgentVisibility string
+
+const (
+	ChatvoltAgentVisibilityPublic  ChatvoltAgentVisibility = "public"
+	ChatvoltAgentVisibilityPrivate ChatvoltAgentVisibility = "private"
+)
+
+// ChatvoltAgentItem describes a single Chatvolt agent returned by the catalog.
+type ChatvoltAgentItem struct {
+	ID          string                  `json:"id"`
+	Name        string                  `json:"name"`
+	Description string                  `json:"description"`
+	ModelName   string                  `json:"modelName"`
+	Visibility  ChatvoltAgentVisibility `json:"visibility"`
+}
+
+// ListChatvoltAgentsResponse is the response for the Chatvolt agents list endpoint.
+type ListChatvoltAgentsResponse struct {
+	Agents []ChatvoltAgentItem `json:"agents"`
+}
+
 // ChatvoltAgentQueryResponse is the response from a Chatvolt agent query.
 type ChatvoltAgentQueryResponse struct {
 	Answer         string      `json:"answer"`
