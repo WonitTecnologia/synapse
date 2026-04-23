@@ -47,17 +47,20 @@ const (
 // ─── Google paths ─────────────────────────────────────────────────────────────
 
 const (
-	pathGoogleVisionConfig = "/api/catalog/application/google/vision/config"
-	pathGoogleVisionOCR    = "/api/catalog/application/google/vision/image/ocr"
+	pathGoogleVisionConfig     = "/api/catalog/application/google/vision/config"
+	pathGoogleVisionOCR        = "/api/catalog/application/google/vision/image/ocr"
+	pathGoogleVisionOCRFromURL = "/api/catalog/application/google/vision/image/ocr/url"
 )
 
 // ─── OpenAI paths ─────────────────────────────────────────────────────────────
 
 const (
-	pathOpenAIConfig       = "/api/catalog/application/openai/config"
-	pathOpenAIChat         = "/api/catalog/application/openai/chat"
-	pathOpenAIImageAnalyze = "/api/catalog/application/openai/image/analyze"
-	pathOpenAITranscribe   = "/api/catalog/application/openai/audio/transcribe"
+	pathOpenAIConfig              = "/api/catalog/application/openai/config"
+	pathOpenAIChat                = "/api/catalog/application/openai/chat"
+	pathOpenAIImageAnalyze        = "/api/catalog/application/openai/image/analyze"
+	pathOpenAIImageAnalyzeFromURL = "/api/catalog/application/openai/image/analyze/url"
+	pathOpenAITranscribe          = "/api/catalog/application/openai/audio/transcribe"
+	pathOpenAITranscribeFromURL   = "/api/catalog/application/openai/audio/transcribe/url"
 )
 
 // ─── Chatvolt paths ───────────────────────────────────────────────────────────

@@ -237,6 +237,26 @@ type TranscribeAudioRequest struct {
 	Prompt string
 }
 
+// TranscribeAudioFromURLRequest groups all parameters for the audio transcription
+// endpoint when the audio file is fetched from a download URL by the server.
+type TranscribeAudioFromURLRequest struct {
+	// FileURL is the download link the server uses to fetch the audio file.
+	FileURL string `json:"file_url"`
+	// Model selects the transcription engine: whisper-1 | gpt-4o-transcribe | gpt-4o-mini-transcribe.
+	Model string `json:"model,omitempty"`
+	// Language hints the spoken language (e.g. "pt", "en", "es").
+	Language string `json:"language,omitempty"`
+	// Prompt is optional auxiliary text to improve transcription accuracy.
+	Prompt string `json:"prompt,omitempty"`
+}
+
+// AnalyzeImageFromURLRequest is the body for analysing an image that the server
+// fetches from a download URL (OpenAI image analysis).
+type AnalyzeImageFromURLRequest struct {
+	FileURL string `json:"file_url"`
+	Prompt  string `json:"prompt"`
+}
+
 // TranscriptionResponse is the response from the audio transcription endpoint.
 type TranscriptionResponse struct {
 	Response string `json:"response"`
@@ -253,6 +273,12 @@ type VisionAICredentialsDTO struct {
 type ConfigureGoogleRequest struct {
 	Credentials VisionAICredentialsDTO `json:"credentials"`
 	IsActive    bool                   `json:"is_active,omitempty"`
+}
+
+// VisionOCRFromURLRequest is the body for the Google Vision OCR endpoint when the
+// image is fetched by the server from a download URL.
+type VisionOCRFromURLRequest struct {
+	FileURL string `json:"file_url"`
 }
 
 // ─── Chatvolt ────────────────────────────────────────────────────────────────

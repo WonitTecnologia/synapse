@@ -22,9 +22,17 @@ type OpenAICase interface {
 	// prompt describes what analysis to perform.
 	AnalyzeImage(ctx context.Context, fileName string, fileContent []byte, prompt string) (*AnalyzeImageResponse, error)
 
+	// AnalyzeImageFromURL analyses an image that the Synapse server downloads from
+	// the provided URL (no local upload required).
+	AnalyzeImageFromURL(ctx context.Context, req AnalyzeImageFromURLRequest) (*AnalyzeImageResponse, error)
+
 	// TranscribeAudio converts an audio file to text using OpenAI Whisper or GPT-4o.
 	// See TranscribeAudioRequest for the full set of options.
 	TranscribeAudio(ctx context.Context, req TranscribeAudioRequest) (*TranscriptionResponse, error)
+
+	// TranscribeAudioFromURL converts an audio file to text; the Synapse server
+	// downloads the file from the URL in req.FileURL.
+	TranscribeAudioFromURL(ctx context.Context, req TranscribeAudioFromURLRequest) (*TranscriptionResponse, error)
 }
 
 // ─── Implementation ───────────────────────────────────────────────────────────
@@ -88,6 +96,22 @@ func (o *openaiClient) TranscribeAudio(ctx context.Context, req TranscribeAudioR
 	)
 	if err != nil {
 		return nil, fmt.Errorf("synapse/openai.TranscribeAudio: %w", err)
+	}
+	return &out, nil
+}
+
+func (o *openaiClient) AnalyzeImageFromURL(ctx context.Context, req AnalyzeImageFromURLRequest) (*AnalyzeImageResponse, error) {
+	var out AnalyzeImageResponse
+	if err := o.http.post(ctx, pathOpenAIImageAnalyzeFromURL, req, &out); err != nil {
+		return nil, fmt.Errorf("synapse/openai.AnalyzeImageFromURL: %w", err)
+	}
+	return &out, nil
+}
+
+func (o *openaiClient) TranscribeAudioFromURL(ctx context.Context, req TranscribeAudioFromURLRequest) (*TranscriptionResponse, error) {
+	var out TranscriptionResponse
+	if err := o.http.post(ctx, pathOpenAITranscribeFromURL, req, &out); err != nil {
+		return nil, fmt.Errorf("synapse/openai.TranscribeAudioFromURL: %w", err)
 	}
 	return &out, nil
 }
