@@ -40,6 +40,18 @@ type Options struct {
 //
 //	// Chatvolt
 //	answer, err := client.Chatvolt.Query(ctx, synapse.ChatvoltAgentQueryRequest{...})
+//
+//	// OpenRouter
+//	sync, err := client.OpenRouter.Sync(ctx, synapse.OpenRouterSyncRequest{})
+//	models, err := client.OpenRouter.ListModels(ctx, false)
+//
+//	// Knowledge
+//	col, err := client.Collection.Create(ctx, synapse.CreateCollectionRequest{Name: "docs", VectorSize: 1536})
+//	doc, err := client.Document.Upload(ctx, synapse.UploadDocumentRequest{...})
+//
+//	// Agent
+//	agent, err := client.Agent.Create(ctx, synapse.CreateAgentRequest{...})
+//	resp, err := client.Agent.Chat(ctx, synapse.ChatRequest{AgentUUID: "...", Message: "Olá!"})
 type Client struct {
 	// Auth covers login, logout, OTP, password reset, and API token management.
 	Auth AuthCase
@@ -64,6 +76,18 @@ type Client struct {
 
 	// Chatvolt covers the Chatvolt agent integration (configure, query, list agents).
 	Chatvolt ChatvoltCase
+
+	// OpenRouter covers the OpenRouter integration (workspace sync/desync, model listing).
+	OpenRouter OpenRouterCase
+
+	// Collection covers Qdrant vector collection CRUD for the knowledge base.
+	Collection CollectionCase
+
+	// Document covers document upload and vectorization for the knowledge base.
+	Document DocumentCase
+
+	// Agent covers AI agent CRUD operations and chat (including RAG).
+	Agent AgentCase
 }
 
 // NewClient creates and returns a fully initialised Synapse Client.
@@ -91,13 +115,17 @@ func NewClient(token string, opts *Options) (*Client, error) {
 	hc := newHTTPClient(token, baseURL, timeout)
 
 	return &Client{
-		Auth:     newAuthClient(hc),
-		User:     newUserClient(hc),
-		Tenant:   newTenantClient(hc),
-		Provider: newProviderClient(hc),
-		Service:  newServiceClient(hc),
-		Google:   newGoogleClient(hc),
-		OpenAI:   newOpenAIClient(hc),
-		Chatvolt: newChatvoltClient(hc),
+		Auth:       newAuthClient(hc),
+		User:       newUserClient(hc),
+		Tenant:     newTenantClient(hc),
+		Provider:   newProviderClient(hc),
+		Service:    newServiceClient(hc),
+		Google:     newGoogleClient(hc),
+		OpenAI:     newOpenAIClient(hc),
+		Chatvolt:   newChatvoltClient(hc),
+		OpenRouter: newOpenRouterClient(hc),
+		Collection: newCollectionClient(hc),
+		Document:   newDocumentClient(hc),
+		Agent:      newAgentClient(hc),
 	}, nil
 }

@@ -346,3 +346,233 @@ type ChatvoltAgentQueryResponse struct {
 	Sources        interface{} `json:"sources"`
 	Metadata       interface{} `json:"metadata"`
 }
+
+// ─── OpenRouter ───────────────────────────────────────────────────────────────
+
+// OpenRouterSyncRequest is the body for syncing a workspace with OpenRouter.
+// TenantUUID is optional and only honoured when the caller is a SystemAdmin.
+type OpenRouterSyncRequest struct {
+	TenantUUID string `json:"tenant_uuid,omitempty"`
+}
+
+// OpenRouterSyncResponse is returned after a successful workspace sync.
+type OpenRouterSyncResponse struct {
+	TenantUUID    string `json:"tenant_uuid"`
+	WorkspaceID   string `json:"workspace_id"`
+	KeyHash       string `json:"key_hash"`
+	Active        bool   `json:"active"`
+	AlreadySynced bool   `json:"already_synced"`
+	SyncedAt      string `json:"synced_at"`
+}
+
+// OpenRouterDesyncResponse is returned after a successful workspace removal.
+type OpenRouterDesyncResponse struct {
+	TenantUUID string `json:"tenant_uuid"`
+	Removed    bool   `json:"removed"`
+}
+
+// OpenRouterModelPricing holds per-token pricing for an OpenRouter model.
+type OpenRouterModelPricing struct {
+	Prompt     string `json:"prompt"`
+	Completion string `json:"completion"`
+}
+
+// OpenRouterModelInfo describes a single model available on OpenRouter.
+type OpenRouterModelInfo struct {
+	ID            string                 `json:"id"`
+	Name          string                 `json:"name"`
+	Description   string                 `json:"description,omitempty"`
+	ContextLength int                    `json:"context_length,omitempty"`
+	Pricing       OpenRouterModelPricing `json:"pricing"`
+	IsFree        bool                   `json:"is_free"`
+}
+
+// OpenRouterListModelsResponse is the paginated list of OpenRouter models.
+type OpenRouterListModelsResponse struct {
+	Models []OpenRouterModelInfo `json:"models"`
+	Total  int                   `json:"total"`
+}
+
+// OpenRouterEmbeddingModel describes a single embedding model on OpenRouter.
+type OpenRouterEmbeddingModel struct {
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Provider    string `json:"provider"`
+	VectorSize  int    `json:"vector_size"`
+	Description string `json:"description"`
+	PricePer1M  string `json:"price_per_1m_tokens_usd"`
+	IsFree      bool   `json:"is_free"`
+}
+
+// OpenRouterListEmbeddingModelsResponse is the paginated list of OpenRouter embedding models.
+type OpenRouterListEmbeddingModelsResponse struct {
+	Models []OpenRouterEmbeddingModel `json:"models"`
+	Total  int                        `json:"total"`
+}
+
+// ─── Knowledge – Collection ───────────────────────────────────────────────────
+
+// CreateCollectionRequest is the body for creating a Qdrant vector collection.
+type CreateCollectionRequest struct {
+	Name string `json:"name"`
+	// VectorSize is the dimension of the embedding vectors (e.g. 1536 for text-embedding-ada-002).
+	// When zero the server uses its default (1536).
+	VectorSize uint64 `json:"vector_size,omitempty"`
+	// Distance is the similarity metric: "Cosine" (default), "Euclid", or "Dot".
+	Distance string `json:"distance,omitempty"`
+}
+
+// CollectionResponse describes a single Qdrant collection registered for a tenant.
+type CollectionResponse struct {
+	UUID                 string `json:"uuid"`
+	TenantUUID           string `json:"tenant_uuid"`
+	Name                 string `json:"name"`
+	QdrantCollectionName string `json:"qdrant_collection_name"`
+	VectorSize           uint64 `json:"vector_size"`
+	Distance             string `json:"distance"`
+	CreatedAt            string `json:"createAt"`
+	UpdatedAt            string `json:"updateAt"`
+}
+
+// CollectionsResponse is the paginated list of collections for a tenant.
+type CollectionsResponse struct {
+	Collections []CollectionResponse `json:"collections"`
+	Page        int                  `json:"page"`
+	Size        int                  `json:"size"`
+}
+
+// ─── Knowledge – Document ─────────────────────────────────────────────────────
+
+// UploadDocumentRequest groups all parameters for the document upload endpoint.
+type UploadDocumentRequest struct {
+	// CollectionUUID is the UUID of the target Qdrant collection.
+	CollectionUUID string
+	// EmbedModel is the OpenRouter embedding model ID (e.g. "openai/text-embedding-ada-002").
+	EmbedModel string
+	// ChunkSize is the chunk size in characters (default: 1000 when zero).
+	ChunkSize int
+	// ChunkOverlap is the overlap between chunks in characters (default: 200 when zero).
+	ChunkOverlap int
+	// FileName is the multipart filename (e.g. "report.pdf").
+	FileName string
+	// Content is the raw file bytes (PDF, HTML, DOCX, XLSX, CSV).
+	Content []byte
+}
+
+// DocumentResponse describes a document that has been uploaded and vectorized.
+type DocumentResponse struct {
+	UUID           string `json:"uuid"`
+	TenantUUID     string `json:"tenant_uuid"`
+	CollectionUUID string `json:"collection_uuid"`
+	Filename       string `json:"filename"`
+	FileType       string `json:"file_type"`
+	EmbedModel     string `json:"embed_model"`
+	ChunkCount     int    `json:"chunk_count"`
+	VectorSize     int    `json:"vector_size"`
+	TokensUsed     int64  `json:"tokens_used"`
+	// Status is "processing", "ready", or "error".
+	Status       string `json:"status"`
+	ErrorMessage string `json:"error_message,omitempty"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
+}
+
+// ListDocumentsResponse is the paginated list of documents in a collection.
+type ListDocumentsResponse struct {
+	Documents []DocumentResponse `json:"documents"`
+	Page      int                `json:"page"`
+	Size      int                `json:"size"`
+}
+
+// ListDocumentsParams holds query parameters for the document list endpoint.
+type ListDocumentsParams struct {
+	CollectionUUID string
+	Page           int
+	Size           int
+}
+
+// ─── Agent ────────────────────────────────────────────────────────────────────
+
+// CreateAgentRequest is the body for creating an AI agent.
+type CreateAgentRequest struct {
+	Name        string   `json:"name"`
+	Description string   `json:"description,omitempty"`
+	Model       string   `json:"model"`
+	Prompt      string   `json:"prompt"`
+	// CollectionUUID enables RAG — set to the UUID of an indexed collection.
+	// The embedding model is resolved automatically from the collection documents.
+	CollectionUUID *string  `json:"collection_uuid,omitempty"`
+	// MaxContext is the number of conversation turns kept in memory (default: server value).
+	MaxContext  int      `json:"max_context,omitempty"`
+	// Temperature controls randomness: 0.0 (deterministic) – 0.7 (max without hallucination).
+	Temperature *float64 `json:"temperature,omitempty"`
+}
+
+// UpdateAgentRequest is used for both full (PUT) and partial (PATCH) agent updates.
+// For PATCH, set exactly one field; for PUT you may set multiple.
+type UpdateAgentRequest struct {
+	Name           *string  `json:"name,omitempty"`
+	Description    *string  `json:"description,omitempty"`
+	Model          *string  `json:"model,omitempty"`
+	Prompt         *string  `json:"prompt,omitempty"`
+	CollectionUUID *string  `json:"collection_uuid,omitempty"`
+	MaxContext     *int     `json:"max_context,omitempty"`
+	Temperature    *float64 `json:"temperature,omitempty"`
+	Active         *bool    `json:"active,omitempty"`
+}
+
+// AgentResponse describes an AI agent.
+type AgentResponse struct {
+	UUID            string  `json:"uuid"`
+	TenantUUID      string  `json:"tenant_uuid"`
+	Name            string  `json:"name"`
+	Description     string  `json:"description"`
+	Model           string  `json:"model"`
+	Prompt          string  `json:"prompt"`
+	CollectionUUID  *string `json:"collection_uuid"`
+	QueryEmbedModel string  `json:"query_embed_model,omitempty"`
+	MaxContext      int     `json:"max_context"`
+	Temperature     float64 `json:"temperature"`
+	Active          bool    `json:"active"`
+	CreatedAt       string  `json:"created_at"`
+	UpdatedAt       string  `json:"updated_at"`
+}
+
+// ListAgentsResponse is the paginated list of agents for a tenant.
+type ListAgentsResponse struct {
+	Agents []AgentResponse `json:"agents"`
+	Page   int             `json:"page"`
+	Size   int             `json:"size"`
+}
+
+// ChatRequest is the body for sending a message to an AI agent.
+type ChatRequest struct {
+	AgentUUID string `json:"agent_uuid"`
+	Message   string `json:"message"`
+	// ConversationUUID continues an existing conversation; omit to start a new one.
+	ConversationUUID *string `json:"conversation_uuid,omitempty"`
+}
+
+// ChatReference is a document chunk retrieved from Qdrant and used in the RAG context.
+type ChatReference struct {
+	Filename   string  `json:"filename"`
+	ChunkIndex int     `json:"chunk_index"`
+	Score      float32 `json:"score"`
+	ScorePct   float32 `json:"score_pct"`
+	Text       string  `json:"text"`
+}
+
+// ChatRagInfo reports what happened during the semantic search step.
+type ChatRagInfo struct {
+	Enabled     bool   `json:"enabled"`
+	ChunksFound int    `json:"chunks_found"`
+	Error       string `json:"error,omitempty"`
+}
+
+// ChatResponse is the reply from the AI agent.
+type ChatResponse struct {
+	ConversationUUID string          `json:"conversation_uuid"`
+	Message          string          `json:"message"`
+	References       []ChatReference `json:"references"`
+	Rag              ChatRagInfo     `json:"rag"`
+}

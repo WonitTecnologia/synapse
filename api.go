@@ -70,3 +70,33 @@ const (
 	pathChatvoltQuery  = "/api/catalog/application/chatvolt/query"
 	pathChatvoltAgents = "/api/catalog/application/chatvolt/agents"
 )
+
+// ─── OpenRouter paths ─────────────────────────────────────────────────────────
+
+const (
+	pathOpenRouterSincronismo     = "/api/catalog/application/openrouter/sincronismo"
+	pathOpenRouterModels          = "/api/catalog/application/openrouter/models"
+	pathOpenRouterEmbeddingModels = "/api/catalog/application/openrouter/models/embedding"
+)
+
+// ─── Knowledge – Collection paths ─────────────────────────────────────────────
+
+const (
+	pathKnowledgeCollectionCreate = "/api/knowledge/collection/create"
+	pathKnowledgeCollection       = "/api/knowledge/collection"
+	pathKnowledgeCollectionList   = "/api/knowledge/collection/list"
+)
+
+// ─── Knowledge – Document paths ───────────────────────────────────────────────
+
+const (
+	pathKnowledgeDocumentUpload = "/api/knowledge/application/document/upload"
+	pathKnowledgeDocument       = "/api/knowledge/application/document"
+)
+
+// ─── Agent paths ──────────────────────────────────────────────────────────────
+
+const (
+	pathAgent     = "/api/agent/domain/agent"
+	pathAgentChat = "/api/agent/application/agent/chat"
+)

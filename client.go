@@ -115,6 +115,19 @@ func (c *httpClient) post(ctx context.Context, path string, payload, out any) er
 	return nil
 }
 
+func (c *httpClient) put(ctx context.Context, path string, payload, out any) error {
+	body, _, err := c.do(ctx, http.MethodPut, path, payload, nil)
+	if err != nil {
+		return err
+	}
+	if out != nil && len(body) > 0 {
+		if err := json.Unmarshal(body, out); err != nil {
+			return fmt.Errorf("synapse: unmarshal response: %w", err)
+		}
+	}
+	return nil
+}
+
 func (c *httpClient) patch(ctx context.Context, path string, payload, out any) error {
 	body, _, err := c.do(ctx, http.MethodPatch, path, payload, nil)
 	if err != nil {
@@ -131,6 +144,19 @@ func (c *httpClient) patch(ctx context.Context, path string, payload, out any) e
 func (c *httpClient) delete(ctx context.Context, path string, params url.Values) error {
 	_, _, err := c.do(ctx, http.MethodDelete, path, nil, params)
 	return err
+}
+
+func (c *httpClient) deleteJSON(ctx context.Context, path string, payload, out any) error {
+	body, _, err := c.do(ctx, http.MethodDelete, path, payload, nil)
+	if err != nil {
+		return err
+	}
+	if out != nil && len(body) > 0 {
+		if err := json.Unmarshal(body, out); err != nil {
+			return fmt.Errorf("synapse: unmarshal response: %w", err)
+		}
+	}
+	return nil
 }
 
 // ─── Multipart helper ─────────────────────────────────────────────────────────
