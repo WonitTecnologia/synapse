@@ -97,6 +97,7 @@ const (
 // ─── Agent paths ──────────────────────────────────────────────────────────────
 
 const (
-	pathAgent     = "/api/agent/domain/agent"
-	pathAgentChat = "/api/agent/application/agent/chat"
+	pathAgent             = "/api/agent/domain/agent"
+	pathAgentChat         = "/api/agent/application/agent/chat"
+	pathAgentConversation = "/api/agent/application/agent/conversation"
 )

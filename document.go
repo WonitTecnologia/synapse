@@ -41,6 +41,9 @@ func (d *documentClient) Upload(ctx context.Context, req UploadDocumentRequest) 
 		"collection_uuid": req.CollectionUUID,
 		"embed_model":     req.EmbedModel,
 	}
+	if req.TenantUUID != nil && *req.TenantUUID != "" {
+		fields["tenant_uuid"] = *req.TenantUUID
+	}
 	if req.ChunkSize > 0 {
 		fields["chunk_size"] = strconv.Itoa(req.ChunkSize)
 	}
@@ -74,7 +77,9 @@ func (d *documentClient) Get(ctx context.Context, documentUUID string) (*Documen
 
 func (d *documentClient) List(ctx context.Context, params ListDocumentsParams) (*ListDocumentsResponse, error) {
 	q := url.Values{}
-	q.Set("collection_uuid", params.CollectionUUID)
+	if params.CollectionUUID != "" {
+		q.Set("collection_uuid", params.CollectionUUID)
+	}
 	if params.Page > 0 {
 		q.Set("page", strconv.Itoa(params.Page))
 	}

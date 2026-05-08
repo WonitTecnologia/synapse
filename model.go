@@ -414,7 +414,9 @@ type OpenRouterListEmbeddingModelsResponse struct {
 
 // CreateCollectionRequest is the body for creating a Qdrant vector collection.
 type CreateCollectionRequest struct {
-	Name string `json:"name"`
+	// TenantUUID is required when the caller is SYSTEM_ADMIN; ignored for other roles.
+	TenantUUID *string `json:"tenant_uuid,omitempty"`
+	Name       string  `json:"name"`
 	// VectorSize is the dimension of the embedding vectors (e.g. 1536 for text-embedding-ada-002).
 	// When zero the server uses its default (1536).
 	VectorSize uint64 `json:"vector_size,omitempty"`
@@ -445,6 +447,8 @@ type CollectionsResponse struct {
 
 // UploadDocumentRequest groups all parameters for the document upload endpoint.
 type UploadDocumentRequest struct {
+	// TenantUUID is required when the caller is SYSTEM_ADMIN; ignored for other roles.
+	TenantUUID *string
 	// CollectionUUID is the UUID of the target Qdrant collection.
 	CollectionUUID string
 	// EmbedModel is the OpenRouter embedding model ID (e.g. "openai/text-embedding-ada-002").
@@ -486,6 +490,8 @@ type ListDocumentsResponse struct {
 
 // ListDocumentsParams holds query parameters for the document list endpoint.
 type ListDocumentsParams struct {
+	// CollectionUUID filters documents by collection.
+	// Required for TENANT_ADMIN/TENANT_USER; optional for SYSTEM_ADMIN.
 	CollectionUUID string
 	Page           int
 	Size           int
@@ -495,15 +501,17 @@ type ListDocumentsParams struct {
 
 // CreateAgentRequest is the body for creating an AI agent.
 type CreateAgentRequest struct {
+	// TenantUUID is required when the caller is SYSTEM_ADMIN; ignored for other roles.
+	TenantUUID  *string  `json:"tenant_uuid,omitempty"`
 	Name        string   `json:"name"`
 	Description string   `json:"description,omitempty"`
 	Model       string   `json:"model"`
 	Prompt      string   `json:"prompt"`
 	// CollectionUUID enables RAG — set to the UUID of an indexed collection.
 	// The embedding model is resolved automatically from the collection documents.
-	CollectionUUID *string  `json:"collection_uuid,omitempty"`
-	// MaxContext is the number of conversation turns kept in memory (default: server value).
-	MaxContext  int      `json:"max_context,omitempty"`
+	CollectionUUID *string `json:"collection_uuid,omitempty"`
+	// MaxContext accepted values: 10000, 15000, 20000 (default: 10000).
+	MaxContext int `json:"max_context,omitempty"`
 	// Temperature controls randomness: 0.0 (deterministic) – 0.7 (max without hallucination).
 	Temperature *float64 `json:"temperature,omitempty"`
 }
@@ -575,4 +583,30 @@ type ChatResponse struct {
 	Message          string          `json:"message"`
 	References       []ChatReference `json:"references"`
 	Rag              ChatRagInfo     `json:"rag"`
+}
+
+// ConversationResponse is a summary of a stored conversation (without full message content).
+type ConversationResponse struct {
+	UUID         string `json:"uuid"`
+	TenantUUID   string `json:"tenant_uuid"`
+	AgentUUID    string `json:"agent_uuid"`
+	// MessageCount is the total number of messages (user + assistant turns).
+	MessageCount int    `json:"message_count"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
+}
+
+// ListConversationsResponse is the paginated list of conversation summaries.
+type ListConversationsResponse struct {
+	Conversations []ConversationResponse `json:"conversations"`
+	Page          int                   `json:"page"`
+	Size          int                   `json:"size"`
+}
+
+// ListConversationsParams holds query parameters for the conversation list endpoint.
+type ListConversationsParams struct {
+	// AgentUUID filters conversations by a specific agent (optional).
+	AgentUUID string
+	Page      int
+	Size      int
 }
