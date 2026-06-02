@@ -371,20 +371,41 @@ type OpenRouterDesyncResponse struct {
 	Removed    bool   `json:"removed"`
 }
 
-// OpenRouterModelPricing holds per-token pricing for an OpenRouter model.
+// OpenRouterModelPricing holds per-token/request pricing for an OpenRouter model.
 type OpenRouterModelPricing struct {
 	Prompt     string `json:"prompt"`
 	Completion string `json:"completion"`
+	Image      string `json:"image,omitempty"`
+	Request    string `json:"request,omitempty"`
+}
+
+// OpenRouterModelArchitecture holds the supported modalities for a model.
+type OpenRouterModelArchitecture struct {
+	InputModalities  []string `json:"input_modalities,omitempty"`
+	OutputModalities []string `json:"output_modalities,omitempty"`
+	Modality         string   `json:"modality,omitempty"`
+}
+
+// OpenRouterTopProvider holds information about the primary provider of a model.
+type OpenRouterTopProvider struct {
+	MaxCompletionTokens *int `json:"max_completion_tokens,omitempty"`
+	IsModerated         bool `json:"is_moderated"`
 }
 
 // OpenRouterModelInfo describes a single model available on OpenRouter.
 type OpenRouterModelInfo struct {
-	ID            string                 `json:"id"`
-	Name          string                 `json:"name"`
-	Description   string                 `json:"description,omitempty"`
-	ContextLength int                    `json:"context_length,omitempty"`
-	Pricing       OpenRouterModelPricing `json:"pricing"`
-	IsFree        bool                   `json:"is_free"`
+	ID                  string                      `json:"id"`
+	Name                string                      `json:"name"`
+	CanonicalSlug       string                      `json:"canonical_slug,omitempty"`
+	Description         string                      `json:"description,omitempty"`
+	ContextLength       int                         `json:"context_length,omitempty"`
+	Created             int64                       `json:"created,omitempty"`
+	KnowledgeCutoff     string                      `json:"knowledge_cutoff,omitempty"`
+	Pricing             OpenRouterModelPricing      `json:"pricing"`
+	Architecture        OpenRouterModelArchitecture `json:"architecture"`
+	TopProvider         OpenRouterTopProvider       `json:"top_provider"`
+	SupportedParameters []string                    `json:"supported_parameters,omitempty"`
+	IsFree              bool                        `json:"is_free"`
 }
 
 // OpenRouterListModelsResponse is the paginated list of OpenRouter models.
