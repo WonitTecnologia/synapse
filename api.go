@@ -92,6 +92,7 @@ const (
 const (
 	pathKnowledgeDocumentUpload = "/api/knowledge/application/document/upload"
 	pathKnowledgeDocument       = "/api/knowledge/application/document"
+	pathKnowledgeDocumentChunks = "/api/knowledge/application/document/%s/chunks"
 )
 
 // ─── Agent paths ──────────────────────────────────────────────────────────────

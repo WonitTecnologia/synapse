@@ -24,6 +24,11 @@ type DocumentCase interface {
 
 	// Delete removes a document and all its associated Qdrant vectors.
 	Delete(ctx context.Context, documentUUID string) error
+
+	// ListChunks returns a paginated list of the vectorized text chunks stored in
+	// Qdrant for the given document, ordered by chunk_index (reading order).
+	// Use params.Size to control how many chunks per page (max 100, default 20).
+	ListChunks(ctx context.Context, documentUUID string, params ListChunksParams) (*ListChunksResponse, error)
 }
 
 // ─── Implementation ───────────────────────────────────────────────────────────
@@ -99,4 +104,21 @@ func (d *documentClient) Delete(ctx context.Context, documentUUID string) error 
 		return fmt.Errorf("synapse/document.Delete: %w", err)
 	}
 	return nil
+}
+
+func (d *documentClient) ListChunks(ctx context.Context, documentUUID string, params ListChunksParams) (*ListChunksResponse, error) {
+	q := url.Values{}
+	if params.Page > 0 {
+		q.Set("page", strconv.Itoa(params.Page))
+	}
+	if params.Size > 0 {
+		q.Set("size", strconv.Itoa(params.Size))
+	}
+
+	path := fmt.Sprintf(pathKnowledgeDocumentChunks, documentUUID)
+	var out ListChunksResponse
+	if err := d.http.get(ctx, path, q, &out); err != nil {
+		return nil, fmt.Errorf("synapse/document.ListChunks: %w", err)
+	}
+	return &out, nil
 }

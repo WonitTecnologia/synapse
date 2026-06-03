@@ -6,6 +6,9 @@ package synapse
 type LoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+	// RememberMe extends the token expiry to 30 days when true.
+	// Omit or set false for the default short-lived session.
+	RememberMe bool `json:"remember_me,omitempty"`
 }
 
 // LoginResponse is returned on successful login or healthcheck.
@@ -513,6 +516,32 @@ type ListDocumentsResponse struct {
 	Size      int                `json:"size"`
 }
 
+// DocumentChunkResponse is a single vectorized text chunk stored in Qdrant.
+type DocumentChunkResponse struct {
+	ID           string `json:"id"`
+	ChunkIndex   int    `json:"chunk_index"`
+	Text         string `json:"text"`
+	DocumentUUID string `json:"document_uuid"`
+	Filename     string `json:"filename"`
+	FileType     string `json:"file_type"`
+}
+
+// ListChunksResponse is the paginated list of chunks for a document.
+type ListChunksResponse struct {
+	Chunks     []DocumentChunkResponse `json:"chunks"`
+	Total      int                     `json:"total"`
+	Page       int                     `json:"page"`
+	Size       int                     `json:"size"`
+	TotalPages int                     `json:"total_pages"`
+}
+
+// ListChunksParams holds query parameters for the chunk list endpoint.
+type ListChunksParams struct {
+	Page int
+	// Size is the number of chunks per page (max 100, default 20).
+	Size int
+}
+
 // ListDocumentsParams holds query parameters for the document list endpoint.
 type ListDocumentsParams struct {
 	// CollectionUUID filters documents by collection.
@@ -532,9 +561,10 @@ type CreateAgentRequest struct {
 	Description string   `json:"description,omitempty"`
 	Model       string   `json:"model"`
 	Prompt      string   `json:"prompt"`
-	// CollectionUUID enables RAG — set to the UUID of an indexed collection.
-	// The embedding model is resolved automatically from the collection documents.
-	CollectionUUID *string `json:"collection_uuid,omitempty"`
+	// CollectionUUIDs enables RAG with one or more indexed collections.
+	// The embedding model is resolved automatically from the first collection's documents.
+	// All collections must use the same embedding model.
+	CollectionUUIDs []string `json:"collection_uuids,omitempty"`
 	// MaxContext accepted values: 10000, 15000, 20000 (default: 10000).
 	MaxContext int `json:"max_context,omitempty"`
 	// Temperature controls randomness: 0.0 (deterministic) – 0.7 (max without hallucination).
@@ -543,32 +573,33 @@ type CreateAgentRequest struct {
 
 // UpdateAgentRequest is used for both full (PUT) and partial (PATCH) agent updates.
 // For PATCH, set exactly one field; for PUT you may set multiple.
+// CollectionUUIDs: nil = no change, []string{} = remove all, ["uuid1","uuid2"] = replace all.
 type UpdateAgentRequest struct {
-	Name           *string  `json:"name,omitempty"`
-	Description    *string  `json:"description,omitempty"`
-	Model          *string  `json:"model,omitempty"`
-	Prompt         *string  `json:"prompt,omitempty"`
-	CollectionUUID *string  `json:"collection_uuid,omitempty"`
-	MaxContext     *int     `json:"max_context,omitempty"`
-	Temperature    *float64 `json:"temperature,omitempty"`
-	Active         *bool    `json:"active,omitempty"`
+	Name            *string   `json:"name,omitempty"`
+	Description     *string   `json:"description,omitempty"`
+	Model           *string   `json:"model,omitempty"`
+	Prompt          *string   `json:"prompt,omitempty"`
+	CollectionUUIDs *[]string `json:"collection_uuids,omitempty"`
+	MaxContext      *int      `json:"max_context,omitempty"`
+	Temperature     *float64  `json:"temperature,omitempty"`
+	Active          *bool     `json:"active,omitempty"`
 }
 
 // AgentResponse describes an AI agent.
 type AgentResponse struct {
-	UUID            string  `json:"uuid"`
-	TenantUUID      string  `json:"tenant_uuid"`
-	Name            string  `json:"name"`
-	Description     string  `json:"description"`
-	Model           string  `json:"model"`
-	Prompt          string  `json:"prompt"`
-	CollectionUUID  *string `json:"collection_uuid"`
-	QueryEmbedModel string  `json:"query_embed_model,omitempty"`
-	MaxContext      int     `json:"max_context"`
-	Temperature     float64 `json:"temperature"`
-	Active          bool    `json:"active"`
-	CreatedAt       string  `json:"created_at"`
-	UpdatedAt       string  `json:"updated_at"`
+	UUID            string   `json:"uuid"`
+	TenantUUID      string   `json:"tenant_uuid"`
+	Name            string   `json:"name"`
+	Description     string   `json:"description"`
+	Model           string   `json:"model"`
+	Prompt          string   `json:"prompt"`
+	CollectionUUIDs []string `json:"collection_uuids"`
+	QueryEmbedModel string   `json:"query_embed_model,omitempty"`
+	MaxContext      int      `json:"max_context"`
+	Temperature     float64  `json:"temperature"`
+	Active          bool     `json:"active"`
+	CreatedAt       string   `json:"created_at"`
+	UpdatedAt       string   `json:"updated_at"`
 }
 
 // ListAgentsResponse is the paginated list of agents for a tenant.
