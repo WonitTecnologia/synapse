@@ -414,15 +414,19 @@ type OpenRouterListModelsResponse struct {
 	Total  int                   `json:"total"`
 }
 
-// OpenRouterEmbeddingModel describes a single embedding model on OpenRouter.
+// OpenRouterEmbeddingModel describes a single embedding model returned live from the OpenRouter API.
+// VectorSize is 0 when the model is not in the known-dimensions catalogue.
+// ContextLength is the maximum number of input tokens the model accepts per request.
+// PricePer1M is the raw per-token USD price as returned by OpenRouter (use *1e6 to convert to per-1M).
 type OpenRouterEmbeddingModel struct {
-	ID          string `json:"id"`
-	Name        string `json:"name"`
-	Provider    string `json:"provider"`
-	VectorSize  int    `json:"vector_size"`
-	Description string `json:"description"`
-	PricePer1M  string `json:"price_per_1m_tokens_usd"`
-	IsFree      bool   `json:"is_free"`
+	ID            string `json:"id"`
+	Name          string `json:"name"`
+	Provider      string `json:"provider"`
+	VectorSize    int    `json:"vector_size"`
+	ContextLength int    `json:"context_length,omitempty"`
+	Description   string `json:"description"`
+	PricePer1M    string `json:"price_per_token_usd"`
+	IsFree        bool   `json:"is_free"`
 }
 
 // OpenRouterListEmbeddingModelsResponse is the paginated list of OpenRouter embedding models.

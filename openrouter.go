@@ -22,8 +22,9 @@ type OpenRouterCase interface {
 	// Set freeOnly=true to filter for free-tier models only.
 	ListModels(ctx context.Context, freeOnly bool) (*OpenRouterListModelsResponse, error)
 
-	// ListEmbeddingModels returns the catalogue of embedding models available on OpenRouter,
-	// including the vector_size required to configure a collection before indexing documents.
+	// ListEmbeddingModels fetches live embedding models from the OpenRouter API,
+	// filtered by output modality. Each entry includes vector_size (0 = unknown) and
+	// context_length so callers can configure Qdrant collections and chunk sizes correctly.
 	// Set freeOnly=true to filter for free-tier models only.
 	ListEmbeddingModels(ctx context.Context, freeOnly bool) (*OpenRouterListEmbeddingModelsResponse, error)
 }
