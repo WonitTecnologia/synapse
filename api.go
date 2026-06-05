@@ -102,3 +102,11 @@ const (
 	pathAgentChat         = "/api/agent/application/agent/chat"
 	pathAgentConversation = "/api/agent/application/agent/conversation"
 )
+
+// ─── Agent Prompt paths ───────────────────────────────────────────────────────
+
+const (
+	// pathAgentPrompt is formatted with the agent UUID: fmt.Sprintf(pathAgentPrompt, agentUUID)
+	pathAgentPrompt       = "/api/agent/domain/agent/%s/prompt"
+	pathAgentActivePrompt = "/api/agent/domain/agent/%s/active-prompt"
+)

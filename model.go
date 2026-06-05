@@ -587,19 +587,20 @@ type UpdateAgentRequest struct {
 
 // AgentResponse describes an AI agent.
 type AgentResponse struct {
-	UUID            string   `json:"uuid"`
-	TenantUUID      string   `json:"tenant_uuid"`
-	Name            string   `json:"name"`
-	Description     string   `json:"description"`
-	Model           string   `json:"model"`
-	Prompt          string   `json:"prompt"`
-	CollectionUUIDs []string `json:"collection_uuids"`
-	QueryEmbedModel string   `json:"query_embed_model,omitempty"`
-	MaxContext      int      `json:"max_context"`
-	Temperature     float64  `json:"temperature"`
-	Active          bool     `json:"active"`
-	CreatedAt       string   `json:"created_at"`
-	UpdatedAt       string   `json:"updated_at"`
+	UUID             string  `json:"uuid"`
+	TenantUUID       string  `json:"tenant_uuid"`
+	Name             string  `json:"name"`
+	Description      string  `json:"description"`
+	Model            string  `json:"model"`
+	Prompt           string  `json:"prompt"`
+	CollectionUUIDs  []string `json:"collection_uuids"`
+	QueryEmbedModel  string  `json:"query_embed_model,omitempty"`
+	MaxContext       int     `json:"max_context"`
+	Temperature      float64 `json:"temperature"`
+	Active           bool    `json:"active"`
+	ActivePromptUUID string  `json:"active_prompt_uuid,omitempty"`
+	CreatedAt        string  `json:"created_at"`
+	UpdatedAt        string  `json:"updated_at"`
 }
 
 // ListAgentsResponse is the paginated list of agents for a tenant.
@@ -665,4 +666,38 @@ type ListConversationsParams struct {
 	AgentUUID string
 	Page      int
 	Size      int
+}
+
+// ─── Agent Prompt ─────────────────────────────────────────────────────────────
+
+// CreateAgentPromptRequest is the body for saving a new versioned prompt for an agent.
+type CreateAgentPromptRequest struct {
+	Name   string `json:"name"`
+	Prompt string `json:"prompt"`
+}
+
+// UpdateAgentPromptRequest is the body for updating name and/or content of a saved prompt.
+type UpdateAgentPromptRequest struct {
+	Name   *string `json:"name,omitempty"`
+	Prompt *string `json:"prompt,omitempty"`
+}
+
+// AgentPromptResponse describes a versioned prompt saved for an agent.
+type AgentPromptResponse struct {
+	UUID       string `json:"uuid"`
+	AgentUUID  string `json:"agent_uuid"`
+	TenantUUID string `json:"tenant_uuid"`
+	Name       string `json:"name"`
+	Prompt     string `json:"prompt"`
+	// IsActive reports whether this prompt is currently set as the agent's active prompt.
+	IsActive  bool   `json:"is_active"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
+}
+
+// ListAgentPromptsResponse is the paginated list of saved prompts for an agent.
+type ListAgentPromptsResponse struct {
+	Prompts []AgentPromptResponse `json:"prompts"`
+	Page    int                   `json:"page"`
+	Size    int                   `json:"size"`
 }

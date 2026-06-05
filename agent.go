@@ -47,6 +47,32 @@ type AgentCase interface {
 	// SYSTEM_ADMIN lists conversations from all tenants; other roles are scoped to their own tenant.
 	// Use params.AgentUUID to filter by a specific agent.
 	ListConversations(ctx context.Context, params ListConversationsParams) (*ListConversationsResponse, error)
+
+	// ListPrompts returns a paginated list of versioned prompts saved for an agent.
+	// The IsActive field in each response indicates which prompt is currently active.
+	ListPrompts(ctx context.Context, agentUUID string, page, size int) (*ListAgentPromptsResponse, error)
+
+	// GetPrompt returns a single versioned prompt by its UUID.
+	GetPrompt(ctx context.Context, agentUUID, promptUUID string) (*AgentPromptResponse, error)
+
+	// CreatePrompt saves a new versioned prompt for an agent.
+	// Multiple prompts with the same name are allowed; each is versioned by creation date.
+	CreatePrompt(ctx context.Context, agentUUID string, req CreateAgentPromptRequest) (*AgentPromptResponse, error)
+
+	// UpdatePrompt updates the name and/or content of a saved prompt.
+	// If the prompt is currently active, the agent's prompt content is synced automatically.
+	UpdatePrompt(ctx context.Context, agentUUID, promptUUID string, req UpdateAgentPromptRequest) (*AgentPromptResponse, error)
+
+	// DeletePrompt permanently removes a saved prompt.
+	// If the deleted prompt was the active one, the agent will have no active prompt (active_prompt_uuid = null).
+	DeletePrompt(ctx context.Context, agentUUID, promptUUID string) error
+
+	// ActivatePrompt sets a saved prompt as the active prompt for the agent.
+	// The agent's prompt content is updated immediately to reflect the selected version.
+	ActivatePrompt(ctx context.Context, agentUUID, promptUUID string) error
+
+	// DeactivatePrompt removes the active prompt link from the agent (active_prompt_uuid = null).
+	DeactivatePrompt(ctx context.Context, agentUUID string) error
 }
 
 // ─── Implementation ───────────────────────────────────────────────────────────
@@ -139,4 +165,73 @@ func (a *agentClient) ListConversations(ctx context.Context, params ListConversa
 		return nil, fmt.Errorf("synapse/agent.ListConversations: %w", err)
 	}
 	return &out, nil
+}
+
+// ─── Prompt methods ───────────────────────────────────────────────────────────
+
+func (a *agentClient) ListPrompts(ctx context.Context, agentUUID string, page, size int) (*ListAgentPromptsResponse, error) {
+	q := url.Values{}
+	if page > 0 {
+		q.Set("page", strconv.Itoa(page))
+	}
+	if size > 0 {
+		q.Set("size", strconv.Itoa(size))
+	}
+	var out ListAgentPromptsResponse
+	path := fmt.Sprintf(pathAgentPrompt, agentUUID)
+	if err := a.http.get(ctx, path, q, &out); err != nil {
+		return nil, fmt.Errorf("synapse/agent.ListPrompts: %w", err)
+	}
+	return &out, nil
+}
+
+func (a *agentClient) GetPrompt(ctx context.Context, agentUUID, promptUUID string) (*AgentPromptResponse, error) {
+	var out AgentPromptResponse
+	path := fmt.Sprintf(pathAgentPrompt, agentUUID) + "/" + promptUUID
+	if err := a.http.get(ctx, path, nil, &out); err != nil {
+		return nil, fmt.Errorf("synapse/agent.GetPrompt: %w", err)
+	}
+	return &out, nil
+}
+
+func (a *agentClient) CreatePrompt(ctx context.Context, agentUUID string, req CreateAgentPromptRequest) (*AgentPromptResponse, error) {
+	var out AgentPromptResponse
+	path := fmt.Sprintf(pathAgentPrompt, agentUUID)
+	if err := a.http.post(ctx, path, req, &out); err != nil {
+		return nil, fmt.Errorf("synapse/agent.CreatePrompt: %w", err)
+	}
+	return &out, nil
+}
+
+func (a *agentClient) UpdatePrompt(ctx context.Context, agentUUID, promptUUID string, req UpdateAgentPromptRequest) (*AgentPromptResponse, error) {
+	var out AgentPromptResponse
+	path := fmt.Sprintf(pathAgentPrompt, agentUUID) + "/" + promptUUID
+	if err := a.http.put(ctx, path, req, &out); err != nil {
+		return nil, fmt.Errorf("synapse/agent.UpdatePrompt: %w", err)
+	}
+	return &out, nil
+}
+
+func (a *agentClient) DeletePrompt(ctx context.Context, agentUUID, promptUUID string) error {
+	path := fmt.Sprintf(pathAgentPrompt, agentUUID) + "/" + promptUUID
+	if err := a.http.delete(ctx, path, nil); err != nil {
+		return fmt.Errorf("synapse/agent.DeletePrompt: %w", err)
+	}
+	return nil
+}
+
+func (a *agentClient) ActivatePrompt(ctx context.Context, agentUUID, promptUUID string) error {
+	path := fmt.Sprintf(pathAgentPrompt, agentUUID) + "/" + promptUUID + "/activate"
+	if err := a.http.patch(ctx, path, struct{}{}, nil); err != nil {
+		return fmt.Errorf("synapse/agent.ActivatePrompt: %w", err)
+	}
+	return nil
+}
+
+func (a *agentClient) DeactivatePrompt(ctx context.Context, agentUUID string) error {
+	path := fmt.Sprintf(pathAgentActivePrompt, agentUUID)
+	if err := a.http.delete(ctx, path, nil); err != nil {
+		return fmt.Errorf("synapse/agent.DeactivatePrompt: %w", err)
+	}
+	return nil
 }
