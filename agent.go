@@ -40,6 +40,10 @@ type AgentCase interface {
 	// Chat sends a message to an agent and returns the response.
 	// Omit req.ConversationUUID to start a new conversation; the returned
 	// ChatResponse.ConversationUUID can be passed in subsequent calls to maintain context.
+	// req.ConversationUUID also accepts any client-defined identifier instead of a UUID
+	// (e.g. "2024123ABCabc"): the backend generates and links a UUID to it on the first
+	// call, scoped by tenant + agent, and reuses the same conversation on later calls with
+	// the same identifier — see ChatRequest.ConversationUUID for details.
 	// SYSTEM_ADMIN can chat with agents from any tenant.
 	Chat(ctx context.Context, req ChatRequest) (*ChatResponse, error)
 

@@ -615,6 +615,12 @@ type ChatRequest struct {
 	AgentUUID string `json:"agent_uuid"`
 	Message   string `json:"message"`
 	// ConversationUUID continues an existing conversation; omit to start a new one.
+	// It accepts two formats:
+	//   - a conversation UUID returned by a previous Chat call: continues that conversation;
+	//   - any client-defined identifier (e.g. "2024123ABCabc"): the backend generates a UUID
+	//     on the first call and links that identifier to it (scoped by tenant + agent).
+	//     Subsequent calls with the same identifier reuse the same conversation, and the
+	//     same identifier from a different tenant resolves to a different conversation.
 	ConversationUUID *string `json:"conversation_uuid,omitempty"`
 }
 
@@ -644,9 +650,13 @@ type ChatResponse struct {
 
 // ConversationResponse is a summary of a stored conversation (without full message content).
 type ConversationResponse struct {
-	UUID         string `json:"uuid"`
-	TenantUUID   string `json:"tenant_uuid"`
-	AgentUUID    string `json:"agent_uuid"`
+	UUID       string `json:"uuid"`
+	TenantUUID string `json:"tenant_uuid"`
+	AgentUUID  string `json:"agent_uuid"`
+	// ExternalID is the client-defined identifier linked to this conversation, when the
+	// conversation was started by passing an arbitrary identifier in ConversationUUID
+	// instead of a UUID. Nil for conversations created/continued by UUID.
+	ExternalID *string `json:"external_id,omitempty"`
 	// MessageCount is the total number of messages (user + assistant turns).
 	MessageCount int    `json:"message_count"`
 	CreatedAt    string `json:"created_at"`
