@@ -569,6 +569,7 @@ type CreateAgentRequest struct {
 	MaxContext int `json:"max_context,omitempty"`
 	// Temperature controls randomness: 0.0 (deterministic) – 0.7 (max without hallucination).
 	Temperature *float64 `json:"temperature,omitempty"`
+	McpEnabled  *bool    `json:"mcp_enabled,omitempty"`
 }
 
 // UpdateAgentRequest is used for both full (PUT) and partial (PATCH) agent updates.
@@ -583,24 +584,26 @@ type UpdateAgentRequest struct {
 	MaxContext      *int      `json:"max_context,omitempty"`
 	Temperature     *float64  `json:"temperature,omitempty"`
 	Active          *bool     `json:"active,omitempty"`
+	McpEnabled      *bool     `json:"mcp_enabled,omitempty"`
 }
 
 // AgentResponse describes an AI agent.
 type AgentResponse struct {
-	UUID             string  `json:"uuid"`
-	TenantUUID       string  `json:"tenant_uuid"`
-	Name             string  `json:"name"`
-	Description      string  `json:"description"`
-	Model            string  `json:"model"`
-	Prompt           string  `json:"prompt"`
+	UUID             string   `json:"uuid"`
+	TenantUUID       string   `json:"tenant_uuid"`
+	Name             string   `json:"name"`
+	Description      string   `json:"description"`
+	Model            string   `json:"model"`
+	Prompt           string   `json:"prompt"`
 	CollectionUUIDs  []string `json:"collection_uuids"`
-	QueryEmbedModel  string  `json:"query_embed_model,omitempty"`
-	MaxContext       int     `json:"max_context"`
-	Temperature      float64 `json:"temperature"`
-	Active           bool    `json:"active"`
-	ActivePromptUUID string  `json:"active_prompt_uuid,omitempty"`
-	CreatedAt        string  `json:"created_at"`
-	UpdatedAt        string  `json:"updated_at"`
+	QueryEmbedModel  string   `json:"query_embed_model,omitempty"`
+	MaxContext       int      `json:"max_context"`
+	Temperature      float64  `json:"temperature"`
+	Active           bool     `json:"active"`
+	McpEnabled       bool     `json:"mcp_enabled"`
+	ActivePromptUUID string   `json:"active_prompt_uuid,omitempty"`
+	CreatedAt        string   `json:"created_at"`
+	UpdatedAt        string   `json:"updated_at"`
 }
 
 // ListAgentsResponse is the paginated list of agents for a tenant.
@@ -622,6 +625,10 @@ type ChatRequest struct {
 	//     Subsequent calls with the same identifier reuse the same conversation, and the
 	//     same identifier from a different tenant resolves to a different conversation.
 	ConversationUUID *string `json:"conversation_uuid,omitempty"`
+	// Context carries free-text metadata from the calling system (e.g. PABX). Format is
+	// implementation-defined — e.g. "tenant_uuid:x,protocol_uuid:y". When present, the agent
+	// runtime injects this into MCP tool parameters.
+	Context *string `json:"context,omitempty"`
 }
 
 // ChatReference is a document chunk retrieved from Qdrant and used in the RAG context.
@@ -710,4 +717,47 @@ type ListAgentPromptsResponse struct {
 	Prompts []AgentPromptResponse `json:"prompts"`
 	Page    int                   `json:"page"`
 	Size    int                   `json:"size"`
+}
+
+// ─── MCP Integration ──────────────────────────────────────────────────────────
+
+// CreateMcpIntegrationRequest is the body for registering a new MCP server integration.
+type CreateMcpIntegrationRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	// BaseURL is the root URL of the MCP server (e.g. "https://pabx.wonit.cloud").
+	BaseURL string `json:"base_url"`
+	// Token is the Bearer token sent in every request to the MCP server.
+	Token string `json:"token"`
+}
+
+// UpdateMcpIntegrationRequest is the body for partially updating an MCP integration.
+type UpdateMcpIntegrationRequest struct {
+	Name        *string `json:"name,omitempty"`
+	Description *string `json:"description,omitempty"`
+	BaseURL     *string `json:"base_url,omitempty"`
+	Token       *string `json:"token,omitempty"`
+}
+
+// ToggleMcpIntegrationRequest is the body for activating or deactivating an MCP integration.
+type ToggleMcpIntegrationRequest struct {
+	IsActive bool `json:"is_active"`
+}
+
+// McpIntegrationResponse describes a registered MCP server integration.
+type McpIntegrationResponse struct {
+	UUID        string `json:"uuid"`
+	TenantUUID  string `json:"tenant_uuid"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	BaseURL     string `json:"base_url"`
+	IsActive    bool   `json:"is_active"`
+	CreatedAt   string `json:"created_at"`
+	UpdatedAt   string `json:"updated_at"`
+}
+
+// McpIntegrationListResponse is the list of MCP integrations for a tenant.
+type McpIntegrationListResponse struct {
+	Items []McpIntegrationResponse `json:"items"`
+	Total int                      `json:"total"`
 }

@@ -88,6 +88,9 @@ type Client struct {
 
 	// Agent covers AI agent CRUD operations and chat (including RAG).
 	Agent AgentCase
+
+	// Mcp covers MCP (Model Context Protocol) server integration management.
+	Mcp McpCase
 }
 
 // NewClient creates and returns a fully initialised Synapse Client.
@@ -127,5 +130,6 @@ func NewClient(token string, opts *Options) (*Client, error) {
 		Collection: newCollectionClient(hc),
 		Document:   newDocumentClient(hc),
 		Agent:      newAgentClient(hc),
+		Mcp:        newMcpClient(hc),
 	}, nil
 }
