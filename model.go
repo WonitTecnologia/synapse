@@ -568,8 +568,10 @@ type CreateAgentRequest struct {
 	// MaxContext accepted values: 10000, 15000, 20000 (default: 10000).
 	MaxContext int `json:"max_context,omitempty"`
 	// Temperature controls randomness: 0.0 (deterministic) – 0.7 (max without hallucination).
-	Temperature *float64 `json:"temperature,omitempty"`
-	McpEnabled  *bool    `json:"mcp_enabled,omitempty"`
+	Temperature         *float64 `json:"temperature,omitempty"`
+	McpEnabled          *bool    `json:"mcp_enabled,omitempty"`
+	// McpIntegrationUUIDs links the agent to specific MCP server integrations.
+	McpIntegrationUUIDs []string `json:"mcp_integration_uuids,omitempty"`
 }
 
 // UpdateAgentRequest is used for both full (PUT) and partial (PATCH) agent updates.
@@ -583,8 +585,10 @@ type UpdateAgentRequest struct {
 	CollectionUUIDs *[]string `json:"collection_uuids,omitempty"`
 	MaxContext      *int      `json:"max_context,omitempty"`
 	Temperature     *float64  `json:"temperature,omitempty"`
-	Active          *bool     `json:"active,omitempty"`
-	McpEnabled      *bool     `json:"mcp_enabled,omitempty"`
+	Active              *bool     `json:"active,omitempty"`
+	McpEnabled          *bool     `json:"mcp_enabled,omitempty"`
+	// McpIntegrationUUIDs: nil = no change, []string{} = remove all, ["uuid1"] = replace all.
+	McpIntegrationUUIDs *[]string `json:"mcp_integration_uuids,omitempty"`
 }
 
 // AgentResponse describes an AI agent.
@@ -599,9 +603,10 @@ type AgentResponse struct {
 	QueryEmbedModel  string   `json:"query_embed_model,omitempty"`
 	MaxContext       int      `json:"max_context"`
 	Temperature      float64  `json:"temperature"`
-	Active           bool     `json:"active"`
-	McpEnabled       bool     `json:"mcp_enabled"`
-	ActivePromptUUID string   `json:"active_prompt_uuid,omitempty"`
+	Active              bool     `json:"active"`
+	McpEnabled          bool     `json:"mcp_enabled"`
+	McpIntegrationUUIDs []string `json:"mcp_integration_uuids"`
+	ActivePromptUUID    string   `json:"active_prompt_uuid,omitempty"`
 	CreatedAt        string   `json:"created_at"`
 	UpdatedAt        string   `json:"updated_at"`
 }
