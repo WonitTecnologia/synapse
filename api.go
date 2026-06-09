@@ -110,3 +110,11 @@ const (
 	pathAgentPrompt       = "/api/agent/domain/agent/%s/prompt"
 	pathAgentActivePrompt = "/api/agent/domain/agent/%s/active-prompt"
 )
+
+// ─── MCP Integration paths ────────────────────────────────────────────────────
+
+const (
+	pathMcp       = "/api/mcp"
+	pathMcpByUUID = "/api/mcp/%s"
+	pathMcpToggle = "/api/mcp/%s/toggle"
+)
