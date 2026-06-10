@@ -87,6 +87,7 @@ type AgentCase interface {
 
 	GetCredits(ctx context.Context) (*WorkspaceCredits, error)
 	GetActivity(ctx context.Context) ([]ActivityItem, error)
+	GetActivityWithDate(ctx context.Context, date string) ([]ActivityItem, error)
 	GetKeyInfo(ctx context.Context) (*KeyInfo, error)
 }
 
