@@ -746,6 +746,8 @@ type AgentLogItem struct {
 	ToolSuccess            *bool   `json:"tool_success,omitempty"`
 	ToolSummary            *string `json:"tool_summary,omitempty"`
 	DurationMs             *int    `json:"duration_ms,omitempty"`
+	Model                  *string `json:"model,omitempty"`
+	TokensUsed             int     `json:"tokens_used"`
 	CreatedAt              string  `json:"created_at"`
 }
 
