@@ -77,6 +77,9 @@ type AgentCase interface {
 
 	// DeactivatePrompt removes the active prompt link from the agent (active_prompt_uuid = null).
 	DeactivatePrompt(ctx context.Context, agentUUID string) error
+
+	// ListLogs returns execution logs for an agent, filterable by conversation UUID or external ID.
+	ListLogs(ctx context.Context, agentUUID string, params ListAgentLogsParams) (*ListAgentLogsResponse, error)
 }
 
 // ─── Implementation ───────────────────────────────────────────────────────────
@@ -238,4 +241,26 @@ func (a *agentClient) DeactivatePrompt(ctx context.Context, agentUUID string) er
 		return fmt.Errorf("synapse/agent.DeactivatePrompt: %w", err)
 	}
 	return nil
+}
+
+func (a *agentClient) ListLogs(ctx context.Context, agentUUID string, params ListAgentLogsParams) (*ListAgentLogsResponse, error) {
+	q := url.Values{}
+	if params.ConversationUUID != "" {
+		q.Set("conversation_uuid", params.ConversationUUID)
+	}
+	if params.ExternalID != "" {
+		q.Set("external_id", params.ExternalID)
+	}
+	if params.Page > 0 {
+		q.Set("page", strconv.Itoa(params.Page))
+	}
+	if params.Size > 0 {
+		q.Set("size", strconv.Itoa(params.Size))
+	}
+	path := fmt.Sprintf(pathAgentLogs, agentUUID)
+	var out ListAgentLogsResponse
+	if err := a.http.get(ctx, path, q, &out); err != nil {
+		return nil, fmt.Errorf("synapse/agent.ListLogs: %w", err)
+	}
+	return &out, nil
 }

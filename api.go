@@ -109,6 +109,8 @@ const (
 	// pathAgentPrompt is formatted with the agent UUID: fmt.Sprintf(pathAgentPrompt, agentUUID)
 	pathAgentPrompt       = "/api/agent/domain/agent/%s/prompt"
 	pathAgentActivePrompt = "/api/agent/domain/agent/%s/active-prompt"
+
+	pathAgentLogs = "/api/agent/application/agent/%s/logs"
 )
 
 // ─── MCP Integration paths ────────────────────────────────────────────────────

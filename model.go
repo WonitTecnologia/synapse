@@ -729,6 +729,42 @@ type ListAgentPromptsResponse struct {
 	Size    int                   `json:"size"`
 }
 
+// AgentLogItem represents a single agent execution log entry.
+type AgentLogItem struct {
+	UUID                   string  `json:"uuid"`
+	TenantUUID             string  `json:"tenant_uuid"`
+	AgentUUID              string  `json:"agent_uuid"`
+	AgentName              string  `json:"agent_name"`
+	ConversationUUID       *string `json:"conversation_uuid,omitempty"`
+	ConversationExternalID *string `json:"conversation_external_id,omitempty"`
+	Level                  string  `json:"level"`
+	Category               string  `json:"category"`
+	Summary                string  `json:"summary"`
+	Detail                 any     `json:"detail,omitempty"`
+	ToolName               *string `json:"tool_name,omitempty"`
+	ToolParams             any     `json:"tool_params,omitempty"`
+	ToolSuccess            *bool   `json:"tool_success,omitempty"`
+	ToolSummary            *string `json:"tool_summary,omitempty"`
+	DurationMs             *int    `json:"duration_ms,omitempty"`
+	CreatedAt              string  `json:"created_at"`
+}
+
+// ListAgentLogsResponse is the paginated response for listing agent logs.
+type ListAgentLogsResponse struct {
+	Logs  []AgentLogItem `json:"logs"`
+	Page  int            `json:"page"`
+	Size  int            `json:"size"`
+	Total int64          `json:"total"`
+}
+
+// ListAgentLogsParams holds optional filters when listing agent logs.
+type ListAgentLogsParams struct {
+	ConversationUUID string
+	ExternalID       string
+	Page             int
+	Size             int
+}
+
 // ─── MCP Integration ──────────────────────────────────────────────────────────
 
 // CreateMcpIntegrationRequest is the body for registering a new MCP server integration.
