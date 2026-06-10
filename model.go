@@ -767,6 +767,38 @@ type ListAgentLogsParams struct {
 	Size             int
 }
 
+// AgentLogStats holds aggregated statistics for agent usage.
+type AgentLogStats struct {
+	AgentUUID             string              `json:"agent_uuid"`
+	AgentName             string              `json:"agent_name"`
+	TotalCalls            int64               `json:"total_calls"`
+	TotalErrors           int64               `json:"total_errors"`
+	TotalTokens           int64               `json:"total_tokens"`
+	TotalPromptTokens     int64               `json:"total_prompt_tokens"`
+	TotalCompletionTokens int64               `json:"total_completion_tokens"`
+	AvgDurationMs         float64             `json:"avg_duration_ms"`
+	ByModel               []AgentLogModelStat `json:"by_model"`
+	ByConversation        []AgentLogConvStat  `json:"by_conversation"`
+}
+
+// AgentLogModelStat holds per-model usage statistics.
+type AgentLogModelStat struct {
+	Model               string  `json:"model"`
+	Calls               int64   `json:"calls"`
+	TotalTokens         int64   `json:"total_tokens"`
+	AvgDurationMs       float64 `json:"avg_duration_ms"`
+	AvgPromptTokens     float64 `json:"avg_prompt_tokens"`
+	AvgCompletionTokens float64 `json:"avg_completion_tokens"`
+}
+
+// AgentLogConvStat holds per-conversation token usage.
+type AgentLogConvStat struct {
+	ConversationUUID       *string `json:"conversation_uuid,omitempty"`
+	ConversationExternalID *string `json:"conversation_external_id,omitempty"`
+	Calls                  int64   `json:"calls"`
+	TotalTokens            int64   `json:"total_tokens"`
+}
+
 // ─── MCP Integration ──────────────────────────────────────────────────────────
 
 // CreateMcpIntegrationRequest is the body for registering a new MCP server integration.

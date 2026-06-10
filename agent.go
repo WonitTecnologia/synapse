@@ -80,6 +80,10 @@ type AgentCase interface {
 
 	// ListLogs returns execution logs for an agent, filterable by conversation UUID or external ID.
 	ListLogs(ctx context.Context, agentUUID string, params ListAgentLogsParams) (*ListAgentLogsResponse, error)
+
+	// LogsStats returns aggregated token usage statistics for an agent, grouped by model and
+	// conversation. Optionally filter by conversation UUID or external ID.
+	LogsStats(ctx context.Context, agentUUID string, params ListAgentLogsParams) (*AgentLogStats, error)
 }
 
 // ─── Implementation ───────────────────────────────────────────────────────────
@@ -261,6 +265,22 @@ func (a *agentClient) ListLogs(ctx context.Context, agentUUID string, params Lis
 	var out ListAgentLogsResponse
 	if err := a.http.get(ctx, path, q, &out); err != nil {
 		return nil, fmt.Errorf("synapse/agent.ListLogs: %w", err)
+	}
+	return &out, nil
+}
+
+func (a *agentClient) LogsStats(ctx context.Context, agentUUID string, params ListAgentLogsParams) (*AgentLogStats, error) {
+	q := url.Values{}
+	if params.ConversationUUID != "" {
+		q.Set("conversation_uuid", params.ConversationUUID)
+	}
+	if params.ExternalID != "" {
+		q.Set("external_id", params.ExternalID)
+	}
+	path := fmt.Sprintf(pathAgentLogsStats, agentUUID)
+	var out AgentLogStats
+	if err := a.http.get(ctx, path, q, &out); err != nil {
+		return nil, fmt.Errorf("synapse/agent.LogsStats: %w", err)
 	}
 	return &out, nil
 }
