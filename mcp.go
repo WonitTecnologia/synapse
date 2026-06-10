@@ -15,6 +15,8 @@ type McpCase interface {
 	Update(ctx context.Context, uuid string, req UpdateMcpIntegrationRequest) (*McpIntegrationResponse, error)
 	Toggle(ctx context.Context, uuid string, req ToggleMcpIntegrationRequest) (*McpIntegrationResponse, error)
 	Delete(ctx context.Context, uuid string) error
+	// GetTools lists the tools exposed by the remote MCP server behind this integration.
+	GetTools(ctx context.Context, uuid string) (*McpToolsListResponse, error)
 }
 
 // ─── Implementation ───────────────────────────────────────────────────────────
@@ -72,4 +74,12 @@ func (m *mcpClient) Delete(ctx context.Context, uuid string) error {
 		return fmt.Errorf("synapse/mcp.Delete: %w", err)
 	}
 	return nil
+}
+
+func (m *mcpClient) GetTools(ctx context.Context, uuid string) (*McpToolsListResponse, error) {
+	var out McpToolsListResponse
+	if err := m.http.get(ctx, fmt.Sprintf(pathMcpIntegrationTools, uuid), nil, &out); err != nil {
+		return nil, fmt.Errorf("synapse/mcp.GetTools: %w", err)
+	}
+	return &out, nil
 }
