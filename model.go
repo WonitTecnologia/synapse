@@ -685,6 +685,7 @@ type ListConversationsResponse struct {
 	Conversations []ConversationResponse `json:"conversations"`
 	Page          int                   `json:"page"`
 	Size          int                   `json:"size"`
+	Total         int64                 `json:"total"`
 }
 
 // ListConversationsParams holds query parameters for the conversation list endpoint.
