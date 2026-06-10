@@ -572,6 +572,8 @@ type CreateAgentRequest struct {
 	McpEnabled          *bool    `json:"mcp_enabled,omitempty"`
 	// McpIntegrationUUIDs links the agent to specific MCP server integrations.
 	McpIntegrationUUIDs []string `json:"mcp_integration_uuids,omitempty"`
+	// McpDisabledTools lists tool names (from the linked integrations) that this agent must not call.
+	McpDisabledTools []string `json:"mcp_disabled_tools,omitempty"`
 }
 
 // UpdateAgentRequest is used for both full (PUT) and partial (PATCH) agent updates.
@@ -589,6 +591,8 @@ type UpdateAgentRequest struct {
 	McpEnabled          *bool     `json:"mcp_enabled,omitempty"`
 	// McpIntegrationUUIDs: nil = no change, []string{} = remove all, ["uuid1"] = replace all.
 	McpIntegrationUUIDs *[]string `json:"mcp_integration_uuids,omitempty"`
+	// McpDisabledTools: nil = no change, []string{} = re-enable all tools, ["tool1"] = replace all.
+	McpDisabledTools *[]string `json:"mcp_disabled_tools,omitempty"`
 }
 
 // AgentResponse describes an AI agent.
@@ -606,6 +610,7 @@ type AgentResponse struct {
 	Active              bool     `json:"active"`
 	McpEnabled          bool     `json:"mcp_enabled"`
 	McpIntegrationUUIDs []string `json:"mcp_integration_uuids"`
+	McpDisabledTools    []string `json:"mcp_disabled_tools"`
 	ActivePromptUUID    string   `json:"active_prompt_uuid,omitempty"`
 	CreatedAt        string   `json:"created_at"`
 	UpdatedAt        string   `json:"updated_at"`
@@ -765,4 +770,26 @@ type McpIntegrationResponse struct {
 type McpIntegrationListResponse struct {
 	Items []McpIntegrationResponse `json:"items"`
 	Total int                      `json:"total"`
+}
+
+// McpToolParameter describes one parameter of a tool exposed by an MCP integration.
+type McpToolParameter struct {
+	Name        string   `json:"name"`
+	Type        string   `json:"type"`
+	Description string   `json:"description"`
+	Required    bool     `json:"required"`
+	Enum        []string `json:"enum,omitempty"`
+}
+
+// McpToolDefinition describes a tool exposed by an MCP integration's remote server.
+type McpToolDefinition struct {
+	Name        string             `json:"name"`
+	DisplayName string             `json:"display_name"`
+	Description string             `json:"description"`
+	Parameters  []McpToolParameter `json:"parameters"`
+}
+
+// McpToolsListResponse is the response of listing the tools exposed by an MCP integration.
+type McpToolsListResponse struct {
+	Tools []McpToolDefinition `json:"tools"`
 }

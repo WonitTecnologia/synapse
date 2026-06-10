@@ -113,7 +113,8 @@ const (
 
 // ─── MCP Integration paths ────────────────────────────────────────────────────
 const (
-	pathMcpIntegrations = "/api/mcp/integrations"
-	pathMcpIntegration  = "/api/mcp/integrations/%s"
-	pathMcpToggle       = "/api/mcp/integrations/%s/toggle"
+	pathMcpIntegrations     = "/api/mcp/integrations"
+	pathMcpIntegration      = "/api/mcp/integrations/%s"
+	pathMcpToggle           = "/api/mcp/integrations/%s/toggle"
+	pathMcpIntegrationTools = "/api/mcp/integrations/%s/tools"
 )
