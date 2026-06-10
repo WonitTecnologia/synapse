@@ -768,7 +768,7 @@ type McpIntegrationResponse struct {
 
 // McpIntegrationListResponse is the list of MCP integrations for a tenant.
 type McpIntegrationListResponse struct {
-	Items []McpIntegrationResponse `json:"items"`
+	Items []McpIntegrationResponse `json:"integrations"`
 	Total int                      `json:"total"`
 }
 
