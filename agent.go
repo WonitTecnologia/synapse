@@ -84,6 +84,10 @@ type AgentCase interface {
 	// LogsStats returns aggregated token usage statistics for an agent, grouped by model and
 	// conversation. Optionally filter by conversation UUID or external ID.
 	LogsStats(ctx context.Context, agentUUID string, params ListAgentLogsParams) (*AgentLogStats, error)
+
+	GetCredits(ctx context.Context) (*WorkspaceCredits, error)
+	GetActivity(ctx context.Context) ([]ActivityItem, error)
+	GetKeyInfo(ctx context.Context) (*KeyInfo, error)
 }
 
 // ─── Implementation ───────────────────────────────────────────────────────────
@@ -281,6 +285,30 @@ func (a *agentClient) LogsStats(ctx context.Context, agentUUID string, params Li
 	var out AgentLogStats
 	if err := a.http.get(ctx, path, q, &out); err != nil {
 		return nil, fmt.Errorf("synapse/agent.LogsStats: %w", err)
+	}
+	return &out, nil
+}
+
+func (a *agentClient) GetCredits(ctx context.Context) (*WorkspaceCredits, error) {
+	var out WorkspaceCredits
+	if err := a.http.get(ctx, pathWorkspaceCredits, nil, &out); err != nil {
+		return nil, fmt.Errorf("synapse/agent.GetCredits: %w", err)
+	}
+	return &out, nil
+}
+
+func (a *agentClient) GetActivity(ctx context.Context) ([]ActivityItem, error) {
+	var out []ActivityItem
+	if err := a.http.get(ctx, pathWorkspaceActivity, nil, &out); err != nil {
+		return nil, fmt.Errorf("synapse/agent.GetActivity: %w", err)
+	}
+	return out, nil
+}
+
+func (a *agentClient) GetKeyInfo(ctx context.Context) (*KeyInfo, error) {
+	var out KeyInfo
+	if err := a.http.get(ctx, pathWorkspaceKey, nil, &out); err != nil {
+		return nil, fmt.Errorf("synapse/agent.GetKeyInfo: %w", err)
 	}
 	return &out, nil
 }

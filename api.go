@@ -112,6 +112,10 @@ const (
 
 	pathAgentLogs      = "/api/agent/application/agent/%s/logs"
 	pathAgentLogsStats = "/api/agent/application/agent/%s/logs/stats"
+
+	pathWorkspaceCredits  = "/api/catalog/application/openrouter/credits"
+	pathWorkspaceActivity = "/api/catalog/application/openrouter/activity"
+	pathWorkspaceKey      = "/api/catalog/application/openrouter/key"
 )
 
 // ─── MCP Integration paths ────────────────────────────────────────────────────

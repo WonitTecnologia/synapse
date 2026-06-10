@@ -799,6 +799,33 @@ type AgentLogConvStat struct {
 	TotalTokens            int64   `json:"total_tokens"`
 }
 
+// ─── OpenRouter Workspace ───────────────────────────────────────────────────
+
+type WorkspaceCredits struct {
+	TotalCredits float64 `json:"total_credits"`
+	TotalUsage   float64 `json:"total_usage"`
+}
+
+type ActivityItem struct {
+	Date              string  `json:"date"`
+	Model             string  `json:"model"`
+	ProviderName      string  `json:"provider_name"`
+	Usage             float64 `json:"usage"`
+	Requests          int     `json:"requests"`
+	PromptTokens      int     `json:"prompt_tokens"`
+	CompletionTokens  int     `json:"completion_tokens"`
+	ReasoningTokens   int     `json:"reasoning_tokens"`
+	ByokUsageInference float64 `json:"byok_usage_inference"`
+}
+
+type KeyInfo struct {
+	Label          string  `json:"label"`
+	Limit          float64 `json:"limit"`
+	LimitRemaining float64 `json:"limit_remaining"`
+	Usage          float64 `json:"usage"`
+	IsFreeTier     bool    `json:"is_free_tier"`
+}
+
 // ─── MCP Integration ──────────────────────────────────────────────────────────
 
 // CreateMcpIntegrationRequest is the body for registering a new MCP server integration.
