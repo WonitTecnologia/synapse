@@ -691,8 +691,10 @@ type ListConversationsResponse struct {
 type ListConversationsParams struct {
 	// AgentUUID filters conversations by a specific agent (optional).
 	AgentUUID string
-	Page      int
-	Size      int
+	// ExternalID filters by the client-provided external identifier (e.g. protocol number).
+	ExternalID string
+	Page       int
+	Size       int
 }
 
 // ─── Agent Prompt ─────────────────────────────────────────────────────────────

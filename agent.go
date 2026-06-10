@@ -169,6 +169,9 @@ func (a *agentClient) ListConversations(ctx context.Context, params ListConversa
 	if params.AgentUUID != "" {
 		q.Set("agent_uuid", params.AgentUUID)
 	}
+	if params.ExternalID != "" {
+		q.Set("external_id", params.ExternalID)
+	}
 	if params.Page > 0 {
 		q.Set("page", strconv.Itoa(params.Page))
 	}
