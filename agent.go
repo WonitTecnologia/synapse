@@ -305,6 +305,16 @@ func (a *agentClient) GetActivity(ctx context.Context) ([]ActivityItem, error) {
 	return out, nil
 }
 
+func (a *agentClient) GetActivityWithDate(ctx context.Context, date string) ([]ActivityItem, error) {
+	q := url.Values{}
+	q.Set("date", date)
+	var out []ActivityItem
+	if err := a.http.get(ctx, pathWorkspaceActivity, q, &out); err != nil {
+		return nil, fmt.Errorf("synapse/agent.GetActivity: %w", err)
+	}
+	return out, nil
+}
+
 func (a *agentClient) GetKeyInfo(ctx context.Context) (*KeyInfo, error) {
 	var out KeyInfo
 	if err := a.http.get(ctx, pathWorkspaceKey, nil, &out); err != nil {
