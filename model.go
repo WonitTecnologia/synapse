@@ -667,6 +667,8 @@ type CreateAgentRequest struct {
 	McpIntegrationUUIDs []string `json:"mcp_integration_uuids,omitempty"`
 	// McpDisabledTools lists tool names (from the linked integrations) that this agent must not call.
 	McpDisabledTools []string `json:"mcp_disabled_tools,omitempty"`
+	AcceptFiles      *bool    `json:"accept_files,omitempty"`
+	FileModel        string   `json:"file_model,omitempty"`
 }
 
 // UpdateAgentRequest is used for both full (PUT) and partial (PATCH) agent updates.
@@ -686,6 +688,8 @@ type UpdateAgentRequest struct {
 	McpIntegrationUUIDs *[]string `json:"mcp_integration_uuids,omitempty"`
 	// McpDisabledTools: nil = no change, []string{} = re-enable all tools, ["tool1"] = replace all.
 	McpDisabledTools *[]string `json:"mcp_disabled_tools,omitempty"`
+	AcceptFiles      *bool     `json:"accept_files,omitempty"`
+	FileModel        *string   `json:"file_model,omitempty"`
 }
 
 // AgentResponse describes an AI agent.
@@ -705,6 +709,8 @@ type AgentResponse struct {
 	McpIntegrationUUIDs []string `json:"mcp_integration_uuids"`
 	McpDisabledTools    []string `json:"mcp_disabled_tools"`
 	ActivePromptUUID    string   `json:"active_prompt_uuid,omitempty"`
+	AcceptFiles         bool     `json:"accept_files"`
+	FileModel           string   `json:"file_model,omitempty"`
 	CreatedAt        string   `json:"created_at"`
 	UpdatedAt        string   `json:"updated_at"`
 }
