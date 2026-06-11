@@ -77,7 +77,7 @@ type Client struct {
 	// Chatvolt covers the Chatvolt agent integration (configure, query, list agents).
 	Chatvolt ChatvoltCase
 
-	// OpenRouter covers the OpenRouter integration (workspace sync/desync, model listing).
+	// OpenRouter covers the OpenRouter integration (workspace sync/desync, model listing, analytics).
 	OpenRouter OpenRouterCase
 
 	// Collection covers Qdrant vector collection CRUD for the knowledge base.

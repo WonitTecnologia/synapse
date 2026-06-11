@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"strconv"
 )
 
 // ─── Interface ────────────────────────────────────────────────────────────────
@@ -27,6 +28,29 @@ type OpenRouterCase interface {
 	// context_length so callers can configure Qdrant collections and chunk sizes correctly.
 	// Set freeOnly=true to filter for free-tier models only.
 	ListEmbeddingModels(ctx context.Context, freeOnly bool) (*OpenRouterListEmbeddingModelsResponse, error)
+
+	// GetMonthlyAnalytics returns tokens_total and total_usage per model/day of a
+	// month for the workspace linked to the authenticated tenant.
+	GetMonthlyAnalytics(ctx context.Context, params OpenRouterMonthlyAnalyticsParams) (*OpenRouterMonthlyAnalyticsResponse, error)
+
+	// QueryAnalytics runs an analytics query scoped to the tenant's workspace.
+	// The workspace filter is applied server-side and must not be present in
+	// req.Filters. Metrics/dimensions outside the daily materialized view (only
+	// tokens_total, total_usage and the model dimension are MV-compatible) are
+	// limited to a 31-day time range, as are the minute and hour granularities.
+	QueryAnalytics(ctx context.Context, req OpenRouterAnalyticsQueryRequest) (*OpenRouterAnalyticsResult, error)
+
+	// GetAnalyticsMeta returns the metrics, dimensions, filter operators and
+	// granularities available for analytics queries on the tenant's workspace.
+	GetAnalyticsMeta(ctx context.Context) (*OpenRouterAnalyticsMeta, error)
+}
+
+// OpenRouterMonthlyAnalyticsParams are the optional parameters for GetMonthlyAnalytics.
+type OpenRouterMonthlyAnalyticsParams struct {
+	// Month in "YYYY-MM" format. Empty = current month.
+	Month string
+	// Limit caps the number of rows (default 1000, max 1000).
+	Limit int
 }
 
 // ─── Implementation ───────────────────────────────────────────────────────────
@@ -75,6 +99,37 @@ func (o *openrouterClient) ListEmbeddingModels(ctx context.Context, freeOnly boo
 	var out OpenRouterListEmbeddingModelsResponse
 	if err := o.http.get(ctx, pathOpenRouterEmbeddingModels, q, &out); err != nil {
 		return nil, fmt.Errorf("synapse/openrouter.ListEmbeddingModels: %w", err)
+	}
+	return &out, nil
+}
+
+func (o *openrouterClient) GetMonthlyAnalytics(ctx context.Context, params OpenRouterMonthlyAnalyticsParams) (*OpenRouterMonthlyAnalyticsResponse, error) {
+	q := url.Values{}
+	if params.Month != "" {
+		q.Set("month", params.Month)
+	}
+	if params.Limit > 0 {
+		q.Set("limit", strconv.Itoa(params.Limit))
+	}
+	var out OpenRouterMonthlyAnalyticsResponse
+	if err := o.http.get(ctx, pathOpenRouterAnalyticsMonthly, q, &out); err != nil {
+		return nil, fmt.Errorf("synapse/openrouter.GetMonthlyAnalytics: %w", err)
+	}
+	return &out, nil
+}
+
+func (o *openrouterClient) QueryAnalytics(ctx context.Context, req OpenRouterAnalyticsQueryRequest) (*OpenRouterAnalyticsResult, error) {
+	var out OpenRouterAnalyticsResult
+	if err := o.http.post(ctx, pathOpenRouterAnalyticsQuery, req, &out); err != nil {
+		return nil, fmt.Errorf("synapse/openrouter.QueryAnalytics: %w", err)
+	}
+	return &out, nil
+}
+
+func (o *openrouterClient) GetAnalyticsMeta(ctx context.Context) (*OpenRouterAnalyticsMeta, error) {
+	var out OpenRouterAnalyticsMeta
+	if err := o.http.get(ctx, pathOpenRouterAnalyticsMeta, nil, &out); err != nil {
+		return nil, fmt.Errorf("synapse/openrouter.GetAnalyticsMeta: %w", err)
 	}
 	return &out, nil
 }

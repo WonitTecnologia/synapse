@@ -438,6 +438,99 @@ type OpenRouterListEmbeddingModelsResponse struct {
 	Total  int                        `json:"total"`
 }
 
+// OpenRouterAnalyticsFilter is an additional filter for an analytics query.
+// The "workspace" field is rejected by the server — it is applied automatically
+// from the authenticated tenant.
+type OpenRouterAnalyticsFilter struct {
+	Field string `json:"field"`
+	// Operator is one of: eq, neq, in, not_in, gt, gte, lt, lte.
+	Operator string `json:"operator"`
+	Value    any    `json:"value"`
+}
+
+// OpenRouterAnalyticsTimeRange bounds an analytics query. Start and End are
+// RFC3339 timestamps (e.g. "2026-06-01T00:00:00Z").
+type OpenRouterAnalyticsTimeRange struct {
+	Start string `json:"start"`
+	End   string `json:"end"`
+}
+
+// OpenRouterAnalyticsQueryRequest is the body for an arbitrary analytics query.
+// Metrics/dimensions outside the daily materialized view (only tokens_total,
+// total_usage and the model dimension are MV-compatible) are limited to a
+// 31-day time range, as are the minute and hour granularities.
+type OpenRouterAnalyticsQueryRequest struct {
+	Metrics    []string                    `json:"metrics"`
+	Dimensions []string                    `json:"dimensions,omitempty"`
+	Filters    []OpenRouterAnalyticsFilter `json:"filters,omitempty"`
+	// Granularity is one of: minute, hour, day (default), week, month.
+	Granularity string `json:"granularity,omitempty"`
+	// Limit caps the number of rows (default 1000, max 1000).
+	Limit     int                          `json:"limit,omitempty"`
+	TimeRange OpenRouterAnalyticsTimeRange `json:"time_range"`
+}
+
+// OpenRouterAnalyticsResult is the result of an analytics query. Row keys are
+// dynamic and depend on the requested metrics/dimensions/granularity
+// (e.g. date__day, created_at__month, model, tokens_total).
+type OpenRouterAnalyticsResult struct {
+	WorkspaceID string           `json:"workspace_id"`
+	Rows        []map[string]any `json:"rows"`
+	RowCount    int              `json:"row_count"`
+	Truncated   bool             `json:"truncated"`
+	QueryTimeMs int              `json:"query_time_ms"`
+}
+
+// OpenRouterMonthlyMetricItem is the usage of one model on a single day of the month.
+type OpenRouterMonthlyMetricItem struct {
+	Date        string  `json:"date"`
+	Model       string  `json:"model"`
+	TokensTotal int64   `json:"tokens_total"`
+	TotalUsage  float64 `json:"total_usage"`
+}
+
+// OpenRouterMonthlyAnalyticsResponse is the per-model/day usage of a month.
+type OpenRouterMonthlyAnalyticsResponse struct {
+	WorkspaceID string                        `json:"workspace_id"`
+	Month       string                        `json:"month"`
+	Items       []OpenRouterMonthlyMetricItem `json:"items"`
+	Total       int                           `json:"total"`
+}
+
+// OpenRouterAnalyticsMetricInfo describes a metric available for analytics queries.
+type OpenRouterAnalyticsMetricInfo struct {
+	Name          string `json:"name"`
+	DisplayLabel  string `json:"display_label"`
+	IsRate        bool   `json:"is_rate"`
+	DisplayFormat string `json:"display_format"`
+}
+
+// OpenRouterAnalyticsDimensionInfo describes a dimension available for analytics queries.
+type OpenRouterAnalyticsDimensionInfo struct {
+	Name         string `json:"name"`
+	DisplayLabel string `json:"display_label"`
+}
+
+// OpenRouterAnalyticsOperatorInfo describes a filter operator available for analytics queries.
+type OpenRouterAnalyticsOperatorInfo struct {
+	Name      string `json:"name"`
+	ValueType string `json:"value_type"`
+}
+
+// OpenRouterAnalyticsGranularityInfo describes a granularity available for analytics queries.
+type OpenRouterAnalyticsGranularityInfo struct {
+	Name         string `json:"name"`
+	DisplayLabel string `json:"display_label"`
+}
+
+// OpenRouterAnalyticsMeta aggregates the analytics metadata of the tenant's workspace.
+type OpenRouterAnalyticsMeta struct {
+	Metrics       []OpenRouterAnalyticsMetricInfo      `json:"metrics"`
+	Dimensions    []OpenRouterAnalyticsDimensionInfo   `json:"dimensions"`
+	Operators     []OpenRouterAnalyticsOperatorInfo    `json:"operators"`
+	Granularities []OpenRouterAnalyticsGranularityInfo `json:"granularities"`
+}
+
 // ─── Knowledge – Collection ───────────────────────────────────────────────────
 
 // CreateCollectionRequest is the body for creating a Qdrant vector collection.
