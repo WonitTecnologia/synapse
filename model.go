@@ -716,6 +716,14 @@ type ListAgentsResponse struct {
 	Size   int             `json:"size"`
 }
 
+// ChatAttachment carries a file/media to be analysed by an agent that accepts attachments.
+type ChatAttachment struct {
+	URL      string `json:"url"`
+	Type     string `json:"type"`      // "image", "audio", "document"
+	MimeType string `json:"mime_type,omitempty"`
+	FileName string `json:"file_name,omitempty"`
+}
+
 // ChatRequest is the body for sending a message to an AI agent.
 type ChatRequest struct {
 	AgentUUID string `json:"agent_uuid"`
@@ -732,6 +740,9 @@ type ChatRequest struct {
 	// implementation-defined — e.g. "tenant_uuid:x,protocol_uuid:y". When present, the agent
 	// runtime injects this into MCP tool parameters.
 	Context *string `json:"context,omitempty"`
+	// Attachment carries a file or media URL for agents that accept attachments.
+	// The Synapse downloads the file from this URL and processes it according to the type.
+	Attachment *ChatAttachment `json:"attachment,omitempty"`
 }
 
 // ChatReference is a document chunk retrieved from Qdrant and used in the RAG context.
