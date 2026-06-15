@@ -733,7 +733,12 @@ type ChatAttachment struct {
 // ChatRequest is the body for sending a message to an AI agent.
 type ChatRequest struct {
 	AgentUUID string `json:"agent_uuid"`
-	Message   string `json:"message"`
+	// Message is the user's text. It is OPTIONAL when Attachment is set: an image
+	// or audio may arrive with no caption — in that case leave Message empty and
+	// the agent processes the media alone. When the media HAS a caption, put the
+	// real caption here (it is sent alongside the media). The backend requires
+	// either a non-empty Message or an attachment the agent can process.
+	Message string `json:"message"`
 	// ConversationUUID continues an existing conversation; omit to start a new one.
 	// It accepts two formats:
 	//   - a conversation UUID returned by a previous Chat call: continues that conversation;
