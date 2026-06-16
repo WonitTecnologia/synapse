@@ -859,6 +859,10 @@ type AgentLogItem struct {
 	Category               string  `json:"category"`
 	Summary                string  `json:"summary"`
 	Detail                 any     `json:"detail,omitempty"`
+	// Reasoning is the model's extended-thinking text for a "chat" log entry,
+	// when the model exposes it. Useful for analyzing why the agent answered or
+	// acted a certain way. Also available inside Detail (key "reasoning").
+	Reasoning              *string `json:"reasoning,omitempty"`
 	ToolName               *string `json:"tool_name,omitempty"`
 	ToolParams             any     `json:"tool_params,omitempty"`
 	ToolSuccess            *bool   `json:"tool_success,omitempty"`
