@@ -878,8 +878,9 @@ type AgentLogItem struct {
 	ToolSummary *string `json:"tool_summary,omitempty"`
 	DurationMs  *int    `json:"duration_ms,omitempty"`
 	Model       *string `json:"model,omitempty"`
-	TokensUsed  int     `json:"tokens_used"`
-	CreatedAt   string  `json:"created_at"`
+	TokensUsed       int     `json:"tokens_used"`
+	EmbeddingTokens  int     `json:"embedding_tokens"`
+	CreatedAt        string  `json:"created_at"`
 }
 
 // ListAgentLogsResponse is the paginated response for listing agent logs.
@@ -907,6 +908,7 @@ type AgentLogStats struct {
 	TotalTokens           int64               `json:"total_tokens"`
 	TotalPromptTokens     int64               `json:"total_prompt_tokens"`
 	TotalCompletionTokens int64               `json:"total_completion_tokens"`
+	TotalEmbeddingTokens  int64               `json:"total_embedding_tokens"`
 	AvgDurationMs         float64             `json:"avg_duration_ms"`
 	ByModel               []AgentLogModelStat `json:"by_model"`
 	ByConversation        []AgentLogConvStat  `json:"by_conversation"`
@@ -920,6 +922,7 @@ type AgentLogModelStat struct {
 	AvgDurationMs       float64 `json:"avg_duration_ms"`
 	AvgPromptTokens     float64 `json:"avg_prompt_tokens"`
 	AvgCompletionTokens float64 `json:"avg_completion_tokens"`
+	AvgEmbeddingTokens  float64 `json:"avg_embedding_tokens"`
 }
 
 // AgentLogConvStat holds per-conversation token usage.
