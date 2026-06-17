@@ -65,7 +65,7 @@ func (c *httpClient) do(
 
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "synapse-api")
+	req.Header.Set("User-Agent", "synapse-sdk")
 	if c.token != "" {
 		req.Header.Set("Authorization", "Bearer "+c.token)
 	}
@@ -200,7 +200,7 @@ func (c *httpClient) postMultipart(
 
 	req.Header.Set("Content-Type", w.FormDataContentType())
 	req.Header.Set("Accept", "application/json")
-	req.Header.Set("User-Agent", "synapse-api")
+	req.Header.Set("User-Agent", "synapse-sdk")
 	if c.token != "" {
 		req.Header.Set("Authorization", "Bearer "+c.token)
 	}
