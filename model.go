@@ -649,11 +649,11 @@ type ListDocumentsParams struct {
 // CreateAgentRequest is the body for creating an AI agent.
 type CreateAgentRequest struct {
 	// TenantUUID is required when the caller is SYSTEM_ADMIN; ignored for other roles.
-	TenantUUID  *string  `json:"tenant_uuid,omitempty"`
-	Name        string   `json:"name"`
-	Description string   `json:"description,omitempty"`
-	Model       string   `json:"model"`
-	Prompt      string   `json:"prompt"`
+	TenantUUID  *string `json:"tenant_uuid,omitempty"`
+	Name        string  `json:"name"`
+	Description string  `json:"description,omitempty"`
+	Model       string  `json:"model"`
+	Prompt      string  `json:"prompt"`
 	// CollectionUUIDs enables RAG with one or more indexed collections.
 	// The embedding model is resolved automatically from the first collection's documents.
 	// All collections must use the same embedding model.
@@ -661,14 +661,18 @@ type CreateAgentRequest struct {
 	// MaxContext accepted values: 10000, 15000, 20000 (default: 10000).
 	MaxContext int `json:"max_context,omitempty"`
 	// Temperature controls randomness: 0.0 (deterministic) – 0.7 (max without hallucination).
-	Temperature         *float64 `json:"temperature,omitempty"`
-	McpEnabled          *bool    `json:"mcp_enabled,omitempty"`
+	Temperature *float64 `json:"temperature,omitempty"`
+	McpEnabled  *bool    `json:"mcp_enabled,omitempty"`
 	// McpIntegrationUUIDs links the agent to specific MCP server integrations.
 	McpIntegrationUUIDs []string `json:"mcp_integration_uuids,omitempty"`
 	// McpDisabledTools lists tool names (from the linked integrations) that this agent must not call.
 	McpDisabledTools []string `json:"mcp_disabled_tools,omitempty"`
-	AcceptFiles      *bool    `json:"accept_files,omitempty"`
-	FileModel        string   `json:"file_model,omitempty"`
+	// ApiToolsEnabled enables external API tools (HTTP) for this agent.
+	ApiToolsEnabled *bool `json:"api_tools_enabled,omitempty"`
+	// ApiToolUUIDs links the agent to specific external API tools.
+	ApiToolUUIDs []string `json:"api_tool_uuids,omitempty"`
+	AcceptFiles  *bool    `json:"accept_files,omitempty"`
+	FileModel    string   `json:"file_model,omitempty"`
 }
 
 // UpdateAgentRequest is used for both full (PUT) and partial (PATCH) agent updates.
@@ -682,37 +686,42 @@ type UpdateAgentRequest struct {
 	CollectionUUIDs *[]string `json:"collection_uuids,omitempty"`
 	MaxContext      *int      `json:"max_context,omitempty"`
 	Temperature     *float64  `json:"temperature,omitempty"`
-	Active              *bool     `json:"active,omitempty"`
-	McpEnabled          *bool     `json:"mcp_enabled,omitempty"`
+	Active          *bool     `json:"active,omitempty"`
+	McpEnabled      *bool     `json:"mcp_enabled,omitempty"`
 	// McpIntegrationUUIDs: nil = no change, []string{} = remove all, ["uuid1"] = replace all.
 	McpIntegrationUUIDs *[]string `json:"mcp_integration_uuids,omitempty"`
 	// McpDisabledTools: nil = no change, []string{} = re-enable all tools, ["tool1"] = replace all.
 	McpDisabledTools *[]string `json:"mcp_disabled_tools,omitempty"`
-	AcceptFiles      *bool     `json:"accept_files,omitempty"`
-	FileModel        *string   `json:"file_model,omitempty"`
+	ApiToolsEnabled  *bool     `json:"api_tools_enabled,omitempty"`
+	// ApiToolUUIDs: nil = no change, []string{} = remove all, ["uuid1"] = replace all.
+	ApiToolUUIDs *[]string `json:"api_tool_uuids,omitempty"`
+	AcceptFiles  *bool     `json:"accept_files,omitempty"`
+	FileModel    *string   `json:"file_model,omitempty"`
 }
 
 // AgentResponse describes an AI agent.
 type AgentResponse struct {
-	UUID             string   `json:"uuid"`
-	TenantUUID       string   `json:"tenant_uuid"`
-	Name             string   `json:"name"`
-	Description      string   `json:"description"`
-	Model            string   `json:"model"`
-	Prompt           string   `json:"prompt"`
-	CollectionUUIDs  []string `json:"collection_uuids"`
-	QueryEmbedModel  string   `json:"query_embed_model,omitempty"`
-	MaxContext       int      `json:"max_context"`
-	Temperature      float64  `json:"temperature"`
+	UUID                string   `json:"uuid"`
+	TenantUUID          string   `json:"tenant_uuid"`
+	Name                string   `json:"name"`
+	Description         string   `json:"description"`
+	Model               string   `json:"model"`
+	Prompt              string   `json:"prompt"`
+	CollectionUUIDs     []string `json:"collection_uuids"`
+	QueryEmbedModel     string   `json:"query_embed_model,omitempty"`
+	MaxContext          int      `json:"max_context"`
+	Temperature         float64  `json:"temperature"`
 	Active              bool     `json:"active"`
 	McpEnabled          bool     `json:"mcp_enabled"`
 	McpIntegrationUUIDs []string `json:"mcp_integration_uuids"`
 	McpDisabledTools    []string `json:"mcp_disabled_tools"`
+	ApiToolsEnabled     bool     `json:"api_tools_enabled"`
+	ApiToolUUIDs        []string `json:"api_tool_uuids"`
 	ActivePromptUUID    string   `json:"active_prompt_uuid,omitempty"`
 	AcceptFiles         bool     `json:"accept_files"`
 	FileModel           string   `json:"file_model,omitempty"`
-	CreatedAt        string   `json:"created_at"`
-	UpdatedAt        string   `json:"updated_at"`
+	CreatedAt           string   `json:"created_at"`
+	UpdatedAt           string   `json:"updated_at"`
 }
 
 // ListAgentsResponse is the paginated list of agents for a tenant.
@@ -725,7 +734,7 @@ type ListAgentsResponse struct {
 // ChatAttachment carries a file/media to be analysed by an agent that accepts attachments.
 type ChatAttachment struct {
 	URL      string `json:"url"`
-	Type     string `json:"type"`      // "image", "audio", "document"
+	Type     string `json:"type"` // "image", "audio", "document"
 	MimeType string `json:"mime_type,omitempty"`
 	FileName string `json:"file_name,omitempty"`
 }
@@ -798,9 +807,9 @@ type ConversationResponse struct {
 // ListConversationsResponse is the paginated list of conversation summaries.
 type ListConversationsResponse struct {
 	Conversations []ConversationResponse `json:"conversations"`
-	Page          int                   `json:"page"`
-	Size          int                   `json:"size"`
-	Total         int64                 `json:"total"`
+	Page          int                    `json:"page"`
+	Size          int                    `json:"size"`
+	Total         int64                  `json:"total"`
 }
 
 // ListConversationsParams holds query parameters for the conversation list endpoint.
@@ -862,15 +871,15 @@ type AgentLogItem struct {
 	// Reasoning is the model's extended-thinking text for a "chat" log entry,
 	// when the model exposes it. Useful for analyzing why the agent answered or
 	// acted a certain way. Also available inside Detail (key "reasoning").
-	Reasoning              *string `json:"reasoning,omitempty"`
-	ToolName               *string `json:"tool_name,omitempty"`
-	ToolParams             any     `json:"tool_params,omitempty"`
-	ToolSuccess            *bool   `json:"tool_success,omitempty"`
-	ToolSummary            *string `json:"tool_summary,omitempty"`
-	DurationMs             *int    `json:"duration_ms,omitempty"`
-	Model                  *string `json:"model,omitempty"`
-	TokensUsed             int     `json:"tokens_used"`
-	CreatedAt              string  `json:"created_at"`
+	Reasoning   *string `json:"reasoning,omitempty"`
+	ToolName    *string `json:"tool_name,omitempty"`
+	ToolParams  any     `json:"tool_params,omitempty"`
+	ToolSuccess *bool   `json:"tool_success,omitempty"`
+	ToolSummary *string `json:"tool_summary,omitempty"`
+	DurationMs  *int    `json:"duration_ms,omitempty"`
+	Model       *string `json:"model,omitempty"`
+	TokensUsed  int     `json:"tokens_used"`
+	CreatedAt   string  `json:"created_at"`
 }
 
 // ListAgentLogsResponse is the paginated response for listing agent logs.
@@ -929,14 +938,14 @@ type WorkspaceCredits struct {
 }
 
 type ActivityItem struct {
-	Date              string  `json:"date"`
-	Model             string  `json:"model"`
-	ProviderName      string  `json:"provider_name"`
-	Usage             float64 `json:"usage"`
-	Requests          int     `json:"requests"`
-	PromptTokens      int     `json:"prompt_tokens"`
-	CompletionTokens  int     `json:"completion_tokens"`
-	ReasoningTokens   int     `json:"reasoning_tokens"`
+	Date               string  `json:"date"`
+	Model              string  `json:"model"`
+	ProviderName       string  `json:"provider_name"`
+	Usage              float64 `json:"usage"`
+	Requests           int     `json:"requests"`
+	PromptTokens       int     `json:"prompt_tokens"`
+	CompletionTokens   int     `json:"completion_tokens"`
+	ReasoningTokens    int     `json:"reasoning_tokens"`
 	ByokUsageInference float64 `json:"byok_usage_inference"`
 }
 
@@ -1011,4 +1020,87 @@ type McpToolDefinition struct {
 // McpToolsListResponse is the response of listing the tools exposed by an MCP integration.
 type McpToolsListResponse struct {
 	Tools []McpToolDefinition `json:"tools"`
+}
+
+// ─── External API tools ───────────────────────────────────────────────────────
+
+// ExternalApiParamDef describes one input the AI fills when calling an external API
+// tool. It becomes a property of the tool's JSON Schema and is interpolated as
+// {{name}} into the URL/headers/body according to Location.
+type ExternalApiParamDef struct {
+	Name        string   `json:"name"`
+	Type        string   `json:"type"` // string|number|integer|boolean
+	Description string   `json:"description"`
+	Required    bool     `json:"required"`
+	Location    string   `json:"location"` // query|path|header|body
+	Enum        []string `json:"enum,omitempty"`
+}
+
+// CreateExternalApiRequest is the body for registering a new external API tool.
+type CreateExternalApiRequest struct {
+	// TenantUUID is required for SYSTEM_ADMIN; omit for TENANT_ADMIN (uses JWT tenant).
+	TenantUUID *string `json:"tenant_uuid,omitempty"`
+	Name       string  `json:"name"`
+	// Description is an internal, human-facing label.
+	Description string `json:"description,omitempty"`
+	// UsagePrompt is the description the AI reads to decide when to call this tool.
+	UsagePrompt string `json:"usage_prompt"`
+	// Method is the HTTP method (GET, POST, PUT, PATCH, DELETE).
+	Method string `json:"method"`
+	// URL may contain {{param}} placeholders (e.g. ".../orders/{{order_id}}").
+	URL string `json:"url"`
+	// Headers values may contain {{param}} placeholders. May carry secrets.
+	Headers map[string]string `json:"headers,omitempty"`
+	// BodyTemplate is a JSON body with {{param}} placeholders (POST/PUT/PATCH).
+	BodyTemplate string                `json:"body_template,omitempty"`
+	Parameters   []ExternalApiParamDef `json:"parameters,omitempty"`
+	// EmbedModel condenses large responses via ephemeral RAG. Empty = no condensing.
+	EmbedModel string `json:"embed_model,omitempty"`
+	// EmbedThreshold is the char count above which the response is condensed (0 = default 8000).
+	EmbedThreshold int `json:"embed_threshold,omitempty"`
+	TimeoutSecs    int `json:"timeout_secs,omitempty"`
+}
+
+// UpdateExternalApiRequest is the body for partially updating an external API tool.
+type UpdateExternalApiRequest struct {
+	Name           *string                `json:"name,omitempty"`
+	Description    *string                `json:"description,omitempty"`
+	UsagePrompt    *string                `json:"usage_prompt,omitempty"`
+	Method         *string                `json:"method,omitempty"`
+	URL            *string                `json:"url,omitempty"`
+	Headers        *map[string]string     `json:"headers,omitempty"`
+	BodyTemplate   *string                `json:"body_template,omitempty"`
+	Parameters     *[]ExternalApiParamDef `json:"parameters,omitempty"`
+	EmbedModel     *string                `json:"embed_model,omitempty"`
+	EmbedThreshold *int                   `json:"embed_threshold,omitempty"`
+	TimeoutSecs    *int                   `json:"timeout_secs,omitempty"`
+	IsActive       *bool                  `json:"is_active,omitempty"`
+}
+
+// ExternalApiResponse describes a registered external API tool.
+type ExternalApiResponse struct {
+	UUID           string                `json:"uuid"`
+	TenantUUID     string                `json:"tenant_uuid"`
+	Name           string                `json:"name"`
+	Description    string                `json:"description"`
+	UsagePrompt    string                `json:"usage_prompt"`
+	Method         string                `json:"method"`
+	URL            string                `json:"url"`
+	Headers        map[string]string     `json:"headers"`
+	BodyTemplate   string                `json:"body_template"`
+	Parameters     []ExternalApiParamDef `json:"parameters"`
+	EmbedModel     string                `json:"embed_model"`
+	EmbedThreshold int                   `json:"embed_threshold"`
+	TimeoutSecs    int                   `json:"timeout_secs"`
+	IsActive       bool                  `json:"is_active"`
+	CreatedAt      string                `json:"created_at"`
+	UpdatedAt      string                `json:"updated_at"`
+}
+
+// ExternalApiListResponse is the list of external API tools for a tenant.
+type ExternalApiListResponse struct {
+	Items []ExternalApiResponse `json:"api_tools"`
+	Page  int                   `json:"page"`
+	Size  int                   `json:"size"`
+	Total int                   `json:"total"`
 }

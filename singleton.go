@@ -91,6 +91,9 @@ type Client struct {
 
 	// Mcp covers MCP (Model Context Protocol) server integration management.
 	Mcp McpCase
+
+	// ExternalApi covers external API tool management (raw HTTP APIs as agent tools).
+	ExternalApi ExternalApiCase
 }
 
 // NewClient creates and returns a fully initialised Synapse Client.
@@ -118,18 +121,19 @@ func NewClient(token string, opts *Options) (*Client, error) {
 	hc := newHTTPClient(token, baseURL, timeout)
 
 	return &Client{
-		Auth:       newAuthClient(hc),
-		User:       newUserClient(hc),
-		Tenant:     newTenantClient(hc),
-		Provider:   newProviderClient(hc),
-		Service:    newServiceClient(hc),
-		Google:     newGoogleClient(hc),
-		OpenAI:     newOpenAIClient(hc),
-		Chatvolt:   newChatvoltClient(hc),
-		OpenRouter: newOpenRouterClient(hc),
-		Collection: newCollectionClient(hc),
-		Document:   newDocumentClient(hc),
-		Agent:      newAgentClient(hc),
-		Mcp:        newMcpClient(hc),
+		Auth:        newAuthClient(hc),
+		User:        newUserClient(hc),
+		Tenant:      newTenantClient(hc),
+		Provider:    newProviderClient(hc),
+		Service:     newServiceClient(hc),
+		Google:      newGoogleClient(hc),
+		OpenAI:      newOpenAIClient(hc),
+		Chatvolt:    newChatvoltClient(hc),
+		OpenRouter:  newOpenRouterClient(hc),
+		Collection:  newCollectionClient(hc),
+		Document:    newDocumentClient(hc),
+		Agent:       newAgentClient(hc),
+		Mcp:         newMcpClient(hc),
+		ExternalApi: newExternalApiClient(hc),
 	}, nil
 }

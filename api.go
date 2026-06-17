@@ -128,3 +128,10 @@ const (
 	pathMcpToggle           = "/api/mcp/integrations/%s/toggle"
 	pathMcpIntegrationTools = "/api/mcp/integrations/%s/tools"
 )
+
+// ─── External API tool paths ──────────────────────────────────────────────────
+const (
+	pathExternalApis      = "/api/external-apis"
+	pathExternalApi       = "/api/external-apis/%s"
+	pathExternalApiToggle = "/api/external-apis/%s/toggle"
+)
