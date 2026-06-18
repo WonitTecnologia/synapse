@@ -85,6 +85,12 @@ type AgentCase interface {
 	// conversation. Optionally filter by conversation UUID or external ID.
 	LogsStats(ctx context.Context, agentUUID string, params ListAgentLogsParams) (*AgentLogStats, error)
 
+	// SearchThoughts returns the thoughts (working memory) stored by the agent during a
+	// conversation. conversationUUID is required; query filters by keyword in content/label
+	// (case-insensitive, empty returns all). The thoughts are Redis-backed, per-conversation,
+	// and expire after TTL (default 24h of inactivity).
+	SearchThoughts(ctx context.Context, agentUUID string, params ThoughtSearchParams) (*ThoughtSearchResponse, error)
+
 	GetCredits(ctx context.Context) (*WorkspaceCredits, error)
 	GetActivity(ctx context.Context) ([]ActivityItem, error)
 	GetActivityWithDate(ctx context.Context, date string) ([]ActivityItem, error)
@@ -289,6 +295,20 @@ func (a *agentClient) LogsStats(ctx context.Context, agentUUID string, params Li
 	var out AgentLogStats
 	if err := a.http.get(ctx, path, q, &out); err != nil {
 		return nil, fmt.Errorf("synapse/agent.LogsStats: %w", err)
+	}
+	return &out, nil
+}
+
+func (a *agentClient) SearchThoughts(ctx context.Context, agentUUID string, params ThoughtSearchParams) (*ThoughtSearchResponse, error) {
+	q := url.Values{}
+	q.Set("conversation_uuid", params.ConversationUUID)
+	if params.Query != "" {
+		q.Set("query", params.Query)
+	}
+	path := fmt.Sprintf(pathAgentThoughts, agentUUID)
+	var out ThoughtSearchResponse
+	if err := a.http.get(ctx, path, q, &out); err != nil {
+		return nil, fmt.Errorf("synapse/agent.SearchThoughts: %w", err)
 	}
 	return &out, nil
 }

@@ -671,8 +671,12 @@ type CreateAgentRequest struct {
 	ApiToolsEnabled *bool `json:"api_tools_enabled,omitempty"`
 	// ApiToolUUIDs links the agent to specific external API tools.
 	ApiToolUUIDs []string `json:"api_tool_uuids,omitempty"`
-	AcceptFiles  *bool    `json:"accept_files,omitempty"`
-	FileModel    string   `json:"file_model,omitempty"`
+	// ThoughtsEnabled enables the agent's working memory ("brain"): the model can store,
+	// recall, update and clear thoughts (e.g. an id returned by an API) within a conversation,
+	// kept in Redis with a per-conversation TTL.
+	ThoughtsEnabled *bool  `json:"thoughts_enabled,omitempty"`
+	AcceptFiles     *bool  `json:"accept_files,omitempty"`
+	FileModel       string `json:"file_model,omitempty"`
 }
 
 // UpdateAgentRequest is used for both full (PUT) and partial (PATCH) agent updates.
@@ -695,8 +699,10 @@ type UpdateAgentRequest struct {
 	ApiToolsEnabled  *bool     `json:"api_tools_enabled,omitempty"`
 	// ApiToolUUIDs: nil = no change, []string{} = remove all, ["uuid1"] = replace all.
 	ApiToolUUIDs *[]string `json:"api_tool_uuids,omitempty"`
-	AcceptFiles  *bool     `json:"accept_files,omitempty"`
-	FileModel    *string   `json:"file_model,omitempty"`
+	// ThoughtsEnabled toggles the agent's working memory ("brain") backed by Redis.
+	ThoughtsEnabled *bool   `json:"thoughts_enabled,omitempty"`
+	AcceptFiles     *bool   `json:"accept_files,omitempty"`
+	FileModel       *string `json:"file_model,omitempty"`
 }
 
 // AgentResponse describes an AI agent.
@@ -717,6 +723,7 @@ type AgentResponse struct {
 	McpDisabledTools    []string `json:"mcp_disabled_tools"`
 	ApiToolsEnabled     bool     `json:"api_tools_enabled"`
 	ApiToolUUIDs        []string `json:"api_tool_uuids"`
+	ThoughtsEnabled     bool     `json:"thoughts_enabled"`
 	ActivePromptUUID    string   `json:"active_prompt_uuid,omitempty"`
 	AcceptFiles         bool     `json:"accept_files"`
 	FileModel           string   `json:"file_model,omitempty"`
@@ -1106,4 +1113,30 @@ type ExternalApiListResponse struct {
 	Page  int                   `json:"page"`
 	Size  int                   `json:"size"`
 	Total int                   `json:"total"`
+}
+
+// ─── Thought (Working Memory) ──────────────────────────────────────────────────
+
+// ThoughtItem represents a single thought stored in the agent's working memory
+// (Redis-backed, per conversation). Thoughts are created by the model using tools
+// like armazenar_pensamento and retrieved via buscas.
+type ThoughtItem struct {
+	ID        string `json:"id"`
+	Label     string `json:"label,omitempty"`
+	Content   string `json:"content"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
+}
+
+// ThoughtSearchParams holds query parameters for searching thoughts in a conversation.
+// ConversationUUID is required; Query filters by keyword (case-insensitive, content+label).
+type ThoughtSearchParams struct {
+	ConversationUUID string
+	Query            string
+}
+
+// ThoughtSearchResponse is the response from the thoughts search endpoint.
+type ThoughtSearchResponse struct {
+	Thoughts []ThoughtItem `json:"thoughts"`
+	Total    int           `json:"total"`
 }

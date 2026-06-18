@@ -115,6 +115,7 @@ const (
 
 	pathAgentLogs      = "/api/agent/application/agent/%s/logs"
 	pathAgentLogsStats = "/api/agent/application/agent/%s/logs/stats"
+	pathAgentThoughts  = "/api/agent/application/agent/%s/thoughts"
 
 	pathWorkspaceCredits  = "/api/catalog/application/openrouter/credits"
 	pathWorkspaceActivity = "/api/catalog/application/openrouter/activity"
