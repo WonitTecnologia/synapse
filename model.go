@@ -677,6 +677,12 @@ type CreateAgentRequest struct {
 	ThoughtsEnabled *bool  `json:"thoughts_enabled,omitempty"`
 	AcceptFiles     *bool  `json:"accept_files,omitempty"`
 	FileModel       string `json:"file_model,omitempty"`
+	// Per-content-type model overrides. Empty = fall back to Model (the main,
+	// textual model). When an image/audio attachment arrives, the turn is routed
+	// to the matching model; text-only turns use TextModel when set.
+	TextModel  string `json:"text_model,omitempty"`
+	ImageModel string `json:"image_model,omitempty"`
+	AudioModel string `json:"audio_model,omitempty"`
 }
 
 // UpdateAgentRequest is used for both full (PUT) and partial (PATCH) agent updates.
@@ -703,6 +709,10 @@ type UpdateAgentRequest struct {
 	ThoughtsEnabled *bool   `json:"thoughts_enabled,omitempty"`
 	AcceptFiles     *bool   `json:"accept_files,omitempty"`
 	FileModel       *string `json:"file_model,omitempty"`
+	// Per-content-type model overrides. nil = no change; "" = revert to Model.
+	TextModel  *string `json:"text_model,omitempty"`
+	ImageModel *string `json:"image_model,omitempty"`
+	AudioModel *string `json:"audio_model,omitempty"`
 }
 
 // AgentResponse describes an AI agent.
@@ -727,6 +737,9 @@ type AgentResponse struct {
 	ActivePromptUUID    string   `json:"active_prompt_uuid,omitempty"`
 	AcceptFiles         bool     `json:"accept_files"`
 	FileModel           string   `json:"file_model,omitempty"`
+	TextModel           string   `json:"text_model,omitempty"`
+	ImageModel          string   `json:"image_model,omitempty"`
+	AudioModel          string   `json:"audio_model,omitempty"`
 	CreatedAt           string   `json:"created_at"`
 	UpdatedAt           string   `json:"updated_at"`
 }
