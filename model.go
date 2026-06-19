@@ -805,6 +805,7 @@ type ChatRagInfo struct {
 type ChatResponse struct {
 	ConversationUUID string          `json:"conversation_uuid"`
 	Message          string          `json:"message"`
+	AgentName        string          `json:"agent_name,omitempty"` // nome vivo do agente que processou
 	References       []ChatReference `json:"references"`
 	Rag              ChatRagInfo     `json:"rag"`
 }
