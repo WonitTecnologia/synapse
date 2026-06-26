@@ -1053,7 +1053,7 @@ type McpToolsListResponse struct {
 // {{name}} into the URL/headers/body according to Location.
 type ExternalApiParamDef struct {
 	Name        string   `json:"name"`
-	Type        string   `json:"type"` // string|number|integer|boolean
+	Type        string   `json:"type"` // string|number|integer|boolean|array|object
 	Description string   `json:"description"`
 	Required    bool     `json:"required"`
 	Location    string   `json:"location"` // query|path|header|body
