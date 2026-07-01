@@ -11,6 +11,12 @@ type Options struct {
 	// Useful for staging environments or self-hosted deployments.
 	BaseURL string
 
+	// Host overrides the Host header sent on every request (HTTP and WebSocket).
+	// Use it together with an IP-based BaseURL to reach the API through the
+	// internal network while the server still resolves the right virtual host,
+	// e.g. BaseURL "http://172.16.50.10" + Host "synapse-dev.wonit.cloud".
+	Host string
+
 	// Timeout sets the maximum duration for each HTTP request.
 	// Defaults to 30 seconds when zero.
 	Timeout time.Duration
@@ -94,6 +100,10 @@ type Client struct {
 
 	// ExternalApi covers external API tool management (raw HTTP APIs as agent tools).
 	ExternalApi ExternalApiCase
+
+	// Monitor covers the real-time agent event WebSocket (receive-only stream
+	// of chat, tool_call/MCP, RAG and error events for monitoring).
+	Monitor MonitorCase
 }
 
 // NewClient creates and returns a fully initialised Synapse Client.
@@ -110,15 +120,16 @@ func NewClient(token string, opts *Options) (*Client, error) {
 		return nil, ErrInvalidToken
 	}
 
-	var baseURL string
+	var baseURL, host string
 	var timeout time.Duration
 
 	if opts != nil {
 		baseURL = opts.BaseURL
+		host = opts.Host
 		timeout = opts.Timeout
 	}
 
-	hc := newHTTPClient(token, baseURL, timeout)
+	hc := newHTTPClient(token, baseURL, host, timeout)
 
 	return &Client{
 		Auth:        newAuthClient(hc),
@@ -135,5 +146,6 @@ func NewClient(token string, opts *Options) (*Client, error) {
 		Agent:       newAgentClient(hc),
 		Mcp:         newMcpClient(hc),
 		ExternalApi: newExternalApiClient(hc),
+		Monitor:     newMonitorClient(hc),
 	}, nil
 }

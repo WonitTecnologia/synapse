@@ -19,10 +19,14 @@ const defaultTimeout = 30 * time.Second
 type httpClient struct {
 	token   string
 	baseURL string
-	http    *http.Client
+	// host overrides the Host header on every request (HTTP and WebSocket),
+	// enabling internal connections by IP while the server resolves the
+	// virtual host by DNS name.
+	host string
+	http *http.Client
 }
 
-func newHTTPClient(token, baseURL string, timeout time.Duration) *httpClient {
+func newHTTPClient(token, baseURL, host string, timeout time.Duration) *httpClient {
 	if baseURL == "" {
 		baseURL = defaultBaseURL
 	}
@@ -32,6 +36,7 @@ func newHTTPClient(token, baseURL string, timeout time.Duration) *httpClient {
 	return &httpClient{
 		token:   token,
 		baseURL: baseURL,
+		host:    host,
 		http:    &http.Client{Timeout: timeout},
 	}
 }
@@ -66,6 +71,9 @@ func (c *httpClient) do(
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "synapse-sdk")
+	if c.host != "" {
+		req.Host = c.host
+	}
 	if c.token != "" {
 		req.Header.Set("Authorization", "Bearer "+c.token)
 	}
@@ -201,6 +209,9 @@ func (c *httpClient) postMultipart(
 	req.Header.Set("Content-Type", w.FormDataContentType())
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("User-Agent", "synapse-sdk")
+	if c.host != "" {
+		req.Host = c.host
+	}
 	if c.token != "" {
 		req.Header.Set("Authorization", "Bearer "+c.token)
 	}

@@ -136,3 +136,8 @@ const (
 	pathExternalApi       = "/api/external-apis/%s"
 	pathExternalApiToggle = "/api/external-apis/%s/toggle"
 )
+
+// ─── Monitor (WebSocket) paths ────────────────────────────────────────────────
+const (
+	pathMonitorLogsWS = "/api/websocket/application/monitor/logs"
+)
