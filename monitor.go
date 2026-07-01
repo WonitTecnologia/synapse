@@ -40,6 +40,10 @@ type StreamLogsOptions struct {
 	// Buffer is the capacity of the events channel (default 256).
 	Buffer int
 
+	// OnConnect, when set, is invoked every time the WebSocket handshake
+	// succeeds — on the first connection and on every automatic reconnection.
+	OnConnect func(session string)
+
 	// OnError, when set, is invoked with connection/decoding errors. The
 	// stream keeps reconnecting regardless; this is for observability only.
 	OnError func(error)
@@ -187,7 +191,7 @@ func (m *monitorClient) StreamLogs(ctx context.Context, opts *StreamLogsOptions)
 		cancel:  cancel,
 	}
 
-	go m.run(streamCtx, stream, wsURL, opts.OnError)
+	go m.run(streamCtx, stream, wsURL, opts.OnConnect, opts.OnError)
 	return stream, nil
 }
 
@@ -216,7 +220,7 @@ func (m *monitorClient) buildURL(session string) (string, error) {
 
 // run keeps the subscription alive: dial, consume, and reconnect with backoff
 // until the context is cancelled. The same session resumes the server queue.
-func (m *monitorClient) run(ctx context.Context, stream *EventStream, wsURL string, onError func(error)) {
+func (m *monitorClient) run(ctx context.Context, stream *EventStream, wsURL string, onConnect func(string), onError func(error)) {
 	defer close(stream.events)
 
 	report := func(err error) {
@@ -235,6 +239,9 @@ func (m *monitorClient) run(ctx context.Context, stream *EventStream, wsURL stri
 		if err != nil {
 			report(fmt.Errorf("synapse/monitor: connect: %w", err))
 		} else {
+			if onConnect != nil {
+				onConnect(stream.session)
+			}
 			backoff = wsBackoffMin
 			err = m.consume(ctx, conn, stream)
 			_ = conn.Close()
