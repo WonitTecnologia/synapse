@@ -39,22 +39,46 @@ client, err := synapse.NewClient("seu-token", &synapse.Options{
 | Campo     | Tipo            | Descrição                                              |
 |-----------|-----------------|--------------------------------------------------------|
 | `BaseURL` | `string`        | Sobrescreve a URL base da API (staging, self-hosted…) |
+| `Host`    | `string`        | Sobrepõe o header `Host` em toda requisição (HTTP e WebSocket). Para conexão interna por IP — ver abaixo |
 | `Timeout` | `time.Duration` | Timeout por requisição HTTP. Padrão: `30s`            |
+
+### Conexão interna (IP direto + Host header)
+
+Para conectar pela rede interna sem passar pela URL pública (mesmo padrão do cliente
+CSA): aponte a `BaseURL` para o IP e informe o DNS do virtual host em `Host`.
+
+```go
+client, err := synapse.NewClient("seu-token", &synapse.Options{
+    BaseURL: "http://172.16.50.41",        // IP interno (porta opcional)
+    Host:    "synapse-dev.wonit.cloud",    // DNS enviado no header Host
+})
+```
+
+- Vale para **todas** as requisições HTTP (inclusive upload multipart) **e** para o
+  WebSocket de monitoramento (no `wss` o `Host` também é usado como SNI/ServerName).
+- Sem `Host`, tudo segue normalmente pela `BaseURL` informada (modo público).
 
 ---
 
 ## Domínios
 
-| Campo             | Interface      | Endpoints cobertos                               |
-|-------------------|----------------|--------------------------------------------------|
-| `client.Auth`     | `AuthCase`     | Login, logout, OTP, reset de senha, API tokens   |
-| `client.User`     | `UserCase`     | CRUD de usuários                                 |
-| `client.Tenant`   | `TenantCase`   | CRUD de tenants                                  |
-| `client.Provider` | `ProviderCase` | Listagem de providers do catálogo                |
-| `client.Service`  | `ServiceCase`  | Listagem de services do catálogo                 |
-| `client.Google`   | `GoogleCase`   | Integração Google Vision AI (OCR)                |
-| `client.OpenAI`   | `OpenAICase`   | Chat, análise de imagem, transcrição de áudio    |
-| `client.Chatvolt` | `ChatvoltCase` | Query a agentes Chatvolt                         |
+| Campo                | Interface         | Endpoints cobertos                               |
+|----------------------|-------------------|--------------------------------------------------|
+| `client.Auth`        | `AuthCase`        | Login, logout, OTP, reset de senha, API tokens   |
+| `client.User`        | `UserCase`        | CRUD de usuários                                 |
+| `client.Tenant`      | `TenantCase`      | CRUD de tenants                                  |
+| `client.Provider`    | `ProviderCase`    | Listagem de providers do catálogo                |
+| `client.Service`     | `ServiceCase`     | Listagem de services do catálogo                 |
+| `client.Google`      | `GoogleCase`      | Integração Google Vision AI (OCR)                |
+| `client.OpenAI`      | `OpenAICase`      | Chat, análise de imagem, transcrição de áudio    |
+| `client.Chatvolt`    | `ChatvoltCase`    | Query a agentes Chatvolt                         |
+| `client.OpenRouter`  | `OpenRouterCase`  | Workspace OpenRouter (sync, modelos, analytics)  |
+| `client.Collection`  | `CollectionCase`  | Coleções vetoriais (Qdrant) da base de conhecimento |
+| `client.Document`    | `DocumentCase`    | Upload e vetorização de documentos               |
+| `client.Agent`       | `AgentCase`       | CRUD de agentes de IA + chat (com RAG)           |
+| `client.Mcp`         | `McpCase`         | Integrações MCP (Model Context Protocol)         |
+| `client.ExternalApi` | `ExternalApiCase` | APIs externas (HTTP cruas) como tools do agente  |
+| `client.Monitor`     | `MonitorCase`     | **WebSocket de monitoramento** — stream de eventos do agente em tempo real ([ver seção](#websocket-de-monitoramento-monitor)) |
 
 ---
 
@@ -333,6 +357,189 @@ resp, err := client.Chatvolt.Query(ctx, synapse.ChatvoltAgentQueryRequest{
     },
 })
 ```
+
+---
+
+## WebSocket de monitoramento (Monitor)
+
+Stream em tempo real dos eventos de execução dos agentes de IA — chat, tool calls
+(MCP e APIs externas), RAG, erros e processamento de arquivos. Canal
+**somente-recebimento**: o SDK confirma cada entrega automaticamente (protocolo de
+ACK interno) e reconecta sozinho; você só consome o canal de eventos.
+
+- Token **master (SYSTEM_ADMIN)** → recebe eventos de **todos os tenants**.
+- Token de **tenant** → recebe apenas os eventos do próprio tenant.
+- Diferente do log persistido, os eventos chegam **sem truncamento** (parâmetros,
+  retorno de API e resultado de tools íntegros).
+
+### Uso básico
+
+```go
+stream, err := client.Monitor.StreamLogs(ctx, nil)
+if err != nil {
+    log.Fatal(err)
+}
+defer stream.Close()
+
+for evt := range stream.Events() {
+    fmt.Printf("[%s] %s — %s\n", evt.Category, evt.AgentName, evt.Summary)
+}
+// o canal fecha quando ctx é cancelado ou stream.Close() é chamado
+```
+
+### Opções (`StreamLogsOptions`)
+
+```go
+stream, err := client.Monitor.StreamLogs(ctx, &synapse.StreamLogsOptions{
+    Session: "3f2a...-uuid",                 // retoma a fila do servidor após reconexão
+    Buffer:  512,                            // capacidade do canal (padrão: 256)
+    OnConnect: func(session string) {        // handshake ok (conexão E reconexões)
+        log.Println("WS conectado, session:", session)
+    },
+    OnError: func(err error) {               // erros de conexão (o stream segue tentando)
+        log.Println("WS erro:", err)
+    },
+})
+```
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `Session` | `string` | UUID de sessão. Reconexões com a mesma session **retomam a fila de entrega** pendente no servidor. Padrão: UUID aleatório mantido pela vida do stream |
+| `Buffer` | `int` | Capacidade do canal de eventos. Padrão: `256` |
+| `OnConnect` | `func(session string)` | Disparado a cada handshake bem-sucedido — conexão inicial **e** cada reconexão automática |
+| `OnError` | `func(error)` | Erros de conexão/handshake. Apenas observabilidade: a reconexão é automática (backoff 1s → 30s) |
+
+### `EventStream`
+
+| Método | Descrição |
+|---|---|
+| `Events() <-chan AgentEvent` | Canal dos eventos recebidos (fecha no encerramento) |
+| `Session() string` | UUID da sessão em uso (útil para logar/persistir) |
+| `Close()` | Encerra o stream e fecha o canal |
+
+### `AgentEvent`
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `UUID` | `string` | Identidade do evento (use para dedup, se necessário) |
+| `TenantUUID` | `string` | Tenant dono do evento |
+| `AgentUUID` / `AgentName` | `string` | Agente que gerou o evento |
+| `ConversationUUID` | `*string` | Conversa interna |
+| `ConversationExternalID` | `*string` | ID externo (ex.: protocolo) |
+| `Level` | `string` | `info` \| `warn` \| `error` |
+| `Category` | `string` | `EventCategoryChat` \| `EventCategoryToolCall` \| `EventCategoryRAG` \| `EventCategoryError` \| `EventCategoryFileProcess` |
+| `Summary` | `string` | Resumo humano do evento |
+| `Detail` | `map[string]any` | Detalhe por categoria (chat: `user_msg`/`response` íntegros, `reasoning`…) |
+| `ToolName` | `*string` | (tool_call) nome da ferramenta |
+| `ToolParams` | `map[string]any` | (tool_call) parâmetros **sem truncar** |
+| `ToolSuccess` | `*bool` | (tool_call) sucesso |
+| `ToolResult` | `string` | (tool_call) resultado **sem truncar** |
+| `APIResponse` | `string` | (tool_call de API externa) corpo da resposta **sem truncar** |
+| `Rag` | `*AgentEventRag` | (rag) `ChunksFound`, `Error`, `Chunks[]` |
+| `DurationMs` | `*int` | Duração da operação |
+| `Model` | `*string` | Modelo que atendeu o turno |
+| `Tokens` | `*AgentEventTokens` | `Prompt`, `Completion`, `Total`, `Embedding` |
+| `CreatedAt` | `time.Time` | UTC |
+
+`AgentEventRagChunk` (cada trecho recuperado pelo RAG): `Filename`, `ChunkIndex`,
+`Score`, `ScorePct` (percentual de similaridade) e `Text` (conteúdo completo).
+
+### Semântica de reconexão e entrega
+
+- **Reconexão automática** com backoff exponencial (1s dobrando até 30s), mantendo a
+  mesma `Session` — o servidor retoma a fila pendente de onde parou.
+- **Entrega confirmada** (*at-least-once*): o servidor reenvia envelopes não
+  confirmados; em cenários raros de ACK perdido um evento pode chegar duplicado —
+  dedup pelo `evt.UUID` se isso importar para o consumidor.
+- O servidor pode fechar o socket com código `1012` (refresh forçado); o SDK trata
+  como queda normal e reconecta.
+- Conexão interna: as opções `BaseURL` (IP) + `Host` do `NewClient` valem também para
+  o WebSocket (ver [Conexão interna](#conexão-interna-ip-direto--host-header)).
+
+> Documentação do lado servidor (rota, escopos, protocolo de ACK, fila Redis e
+> política de reentrega): `documentacao/websocket/README.md` no repositório
+> `synapse-api`.
+
+### Agente — Logs de execução (REST)
+
+A API REST `client.Agent.ListLogs` / `client.Agent.LogsStats` retorna o histórico
+persistido dos eventos do agente. A partir da **v0.0.41**, o `AgentLogItem` foi
+pareado com o `AgentEvent` do WebSocket — os mesmos campos estruturados (`tool_result`,
+`api_response`, `rag`, `tokens`) agora estão disponíveis **também na resposta REST**,
+com os dados íntegros (sem truncamento, que continua sendo regra apenas do `detail`
+para compatibilidade).
+
+```go
+resp, err := client.Agent.ListLogs(ctx, "agent-uuid", synapse.ListAgentLogsParams{
+    ConversationUUID: "conv-uuid",
+    Page:             1,
+    Size:             20,
+})
+for _, log := range resp.Logs {
+    fmt.Println(log.Category, log.Summary)
+    fmt.Println("tokens:", log.Tokens.Prompt, "/", log.Tokens.Completion)
+    fmt.Println("resultado tool:", log.ToolResult)
+    fmt.Println("api response:", log.APIResponse)
+    fmt.Println("rag chunks:", log.Rag)
+}
+```
+
+#### `AgentLogItem` (v0.0.41+)
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `UUID` | `string` | Identidade do log |
+| `TenantUUID` | `string` | Tenant dono do evento |
+| `AgentUUID` / `AgentName` | `string` | Agente que gerou o evento |
+| `Level` | `string` | `info` \| `warn` \| `error` |
+| `Category` | `string` | `chat` \| `tool_call` \| `rag` \| `error` \| `file_process` |
+| `Summary` | `string` | Resumo humano (mesmo formato do WS) |
+| `Detail` | `any` | Detalhe por categoria (previews — o truncamento é regra só deste campo) |
+| `Reasoning` | `*string` | Texto de raciocínio estendido do modelo (extraído do `detail`) |
+| `ToolName` | `*string` | (tool_call) nome da ferramenta |
+| `ToolParams` | `any` | (tool_call) parâmetros |
+| `ToolSuccess` | `*bool` | (tool_call) sucesso |
+| `ToolSummary` | `*string` | (tool_call) resumo truncado (legado) |
+| `ToolResult` | `string` | (tool_call) resultado **íntegro** — igual ao WS |
+| `APIResponse` | `string` | (tool_call) corpo da resposta da API externa **íntegro** — igual ao WS |
+| `Rag` | `any` | (rag) `{chunks_found, error?, chunks[]}` com textos **completos** — igual ao WS |
+| `DurationMs` | `*int` | Duração da operação |
+| `Model` | `*string` | Modelo que atendeu o turno |
+| `TokensUsed` | `int` | Total de tokens |
+| `PromptTokens` | `int` | Tokens de entrada (prompt) |
+| `CompletionTokens` | `int` | Tokens de saída (completion) |
+| `EmbeddingTokens` | `int` | Tokens de embedding (RAG) |
+| `Tokens` | `*AgentEventTokens` | Objeto agregado `{prompt, completion, total, embedding}` — igual ao WS |
+| `CreatedAt` | `string` | Timestamp ISO 8601 |
+
+> **Histórico (REST) vs tempo-real (WS):** ambos agora têm a mesma estrutura de
+> campos (`ToolResult`, `APIResponse`, `Rag`, `Tokens`). A diferença é que o WS
+> entrega os eventos no momento em que ocorrem (push), enquanto o REST é o
+> histórico persistido (pull). Use o WS para monitoramento em tempo real e o REST
+> para auditoria/filtro/relatórios.
+
+#### `AgentLogStats`
+
+```go
+stats, err := client.Agent.LogsStats(ctx, "agent-uuid", synapse.ListAgentLogsParams{
+    ExternalID: "protocolo-123",
+})
+fmt.Println("chamadas:", stats.TotalCalls)
+fmt.Println("tokens (prompt):", stats.TotalPromptTokens)
+fmt.Println("tokens (completion):", stats.TotalCompletionTokens)
+```
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `TotalCalls` | `int64` | Total de turnos do agente |
+| `TotalErrors` | `int64` | Erros |
+| `TotalTokens` | `int64` | Soma de todos os tokens |
+| `TotalPromptTokens` | `int64` | Tokens de entrada |
+| `TotalCompletionTokens` | `int64` | Tokens de saída |
+| `TotalEmbeddingTokens` | `int64` | Tokens de embedding |
+| `AvgDurationMs` | `float64` | Duração média dos turnos |
+| `ByModel` | `[]AgentLogModelStat` | Agregado por modelo |
+| `ByConversation` | `[]AgentLogConvStat` | Agregado por conversa |
 
 ---
 

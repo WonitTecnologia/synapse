@@ -892,16 +892,22 @@ type AgentLogItem struct {
 	// Reasoning is the model's extended-thinking text for a "chat" log entry,
 	// when the model exposes it. Useful for analyzing why the agent answered or
 	// acted a certain way. Also available inside Detail (key "reasoning").
-	Reasoning   *string `json:"reasoning,omitempty"`
-	ToolName    *string `json:"tool_name,omitempty"`
-	ToolParams  any     `json:"tool_params,omitempty"`
-	ToolSuccess *bool   `json:"tool_success,omitempty"`
-	ToolSummary *string `json:"tool_summary,omitempty"`
-	DurationMs  *int    `json:"duration_ms,omitempty"`
-	Model       *string `json:"model,omitempty"`
-	TokensUsed       int     `json:"tokens_used"`
-	EmbeddingTokens  int     `json:"embedding_tokens"`
-	CreatedAt        string  `json:"created_at"`
+	Reasoning        *string           `json:"reasoning,omitempty"`
+	ToolName         *string           `json:"tool_name,omitempty"`
+	ToolParams       any               `json:"tool_params,omitempty"`
+	ToolSuccess      *bool             `json:"tool_success,omitempty"`
+	ToolSummary      *string           `json:"tool_summary,omitempty"`
+	ToolResult       string            `json:"tool_result,omitempty"`
+	APIResponse      string            `json:"api_response,omitempty"`
+	Rag              any               `json:"rag,omitempty"`
+	DurationMs       *int              `json:"duration_ms,omitempty"`
+	Model            *string           `json:"model,omitempty"`
+	TokensUsed       int               `json:"tokens_used"`
+	PromptTokens     int               `json:"prompt_tokens"`
+	CompletionTokens int               `json:"completion_tokens"`
+	EmbeddingTokens  int               `json:"embedding_tokens"`
+	Tokens           *AgentEventTokens `json:"tokens,omitempty"`
+	CreatedAt        string            `json:"created_at"`
 }
 
 // ListAgentLogsResponse is the paginated response for listing agent logs.
