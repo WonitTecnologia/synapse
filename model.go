@@ -563,6 +563,28 @@ type CollectionsResponse struct {
 	Size        int                  `json:"size"`
 }
 
+// ─── Knowledge – Document Estimate ─────────────────────────────────────────────
+
+// EstimateDocumentRequest groups the parameters for cost estimation.
+type EstimateDocumentRequest struct {
+	EmbedModel string
+	ChunkSize  int
+	Overlap    int
+	FileName   string
+	Content    []byte
+}
+
+// EstimateDocumentResponse is the cost estimate returned before upload.
+type EstimateDocumentResponse struct {
+	Pages        int     `json:"pages"`
+	TextChars    int     `json:"text_chars"`
+	EstTokens    int     `json:"est_tokens"`
+	PricePer1M   string  `json:"price_per_1m_usd"`
+	EstCostUSD   float64 `json:"est_cost_usd"`
+	SupportsImg  bool    `json:"supports_image"`
+	ImgEstTokens int     `json:"img_est_tokens,omitempty"`
+}
+
 // ─── Knowledge – Document ─────────────────────────────────────────────────────
 
 // UploadDocumentRequest groups all parameters for the document upload endpoint.

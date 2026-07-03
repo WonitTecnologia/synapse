@@ -25,6 +25,10 @@ type DocumentCase interface {
 	// Delete removes a document and all its associated Qdrant vectors.
 	Delete(ctx context.Context, documentUUID string) error
 
+	// Estimate returns a cost estimate for embedding the file with the given model.
+	// Pre-processes text, counts pages/images, and looks up model pricing via OpenRouter.
+	Estimate(ctx context.Context, req EstimateDocumentRequest) (*EstimateDocumentResponse, error)
+
 	// ListChunks returns a paginated list of the vectorized text chunks stored in
 	// Qdrant for the given document, ordered by chunk_index (reading order).
 	// Use params.Size to control how many chunks per page (max 100, default 20).
@@ -119,6 +123,33 @@ func (d *documentClient) ListChunks(ctx context.Context, documentUUID string, pa
 	var out ListChunksResponse
 	if err := d.http.get(ctx, path, q, &out); err != nil {
 		return nil, fmt.Errorf("synapse/document.ListChunks: %w", err)
+	}
+	return &out, nil
+}
+
+func (d *documentClient) Estimate(ctx context.Context, req EstimateDocumentRequest) (*EstimateDocumentResponse, error) {
+	fields := map[string]string{
+		"embed_model": req.EmbedModel,
+	}
+	if req.ChunkSize > 0 {
+		fields["chunk_size"] = strconv.Itoa(req.ChunkSize)
+	}
+	if req.Overlap > 0 {
+		fields["chunk_overlap"] = strconv.Itoa(req.Overlap)
+	}
+
+	var out EstimateDocumentResponse
+	err := d.http.postMultipart(
+		ctx,
+		pathKnowledgeDocumentEstimate,
+		fields,
+		"file",
+		req.FileName,
+		req.Content,
+		&out,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("synapse/document.Estimate: %w", err)
 	}
 	return &out, nil
 }
