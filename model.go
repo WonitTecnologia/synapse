@@ -551,6 +551,7 @@ type CollectionResponse struct {
 	QdrantCollectionName string `json:"qdrant_collection_name"`
 	VectorSize           uint64 `json:"vector_size"`
 	Distance             string `json:"distance"`
+	EmbedModel           string `json:"embed_model"`
 	CreatedAt            string `json:"createAt"`
 	UpdatedAt            string `json:"updateAt"`
 }
