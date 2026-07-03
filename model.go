@@ -584,22 +584,30 @@ type UploadDocumentRequest struct {
 	Content []byte
 }
 
+// ProcessingStep is one step in the document processing pipeline.
+type ProcessingStep struct {
+	Step   string `json:"step"`
+	Detail string `json:"detail"`
+	Status string `json:"status"`
+	Tokens int    `json:"tokens"`
+}
+
 // DocumentResponse describes a document that has been uploaded and vectorized.
 type DocumentResponse struct {
-	UUID           string `json:"uuid"`
-	TenantUUID     string `json:"tenant_uuid"`
-	CollectionUUID string `json:"collection_uuid"`
-	Filename       string `json:"filename"`
-	FileType       string `json:"file_type"`
-	EmbedModel     string `json:"embed_model"`
-	ChunkCount     int    `json:"chunk_count"`
-	VectorSize     int    `json:"vector_size"`
-	TokensUsed     int64  `json:"tokens_used"`
-	// Status is "processing", "ready", or "error".
-	Status       string `json:"status"`
-	ErrorMessage string `json:"error_message,omitempty"`
-	CreatedAt    string `json:"created_at"`
-	UpdatedAt    string `json:"updated_at"`
+	UUID           string           `json:"uuid"`
+	TenantUUID     string           `json:"tenant_uuid"`
+	CollectionUUID string           `json:"collection_uuid"`
+	Filename       string           `json:"filename"`
+	FileType       string           `json:"file_type"`
+	EmbedModel     string           `json:"embed_model"`
+	ChunkCount     int              `json:"chunk_count"`
+	VectorSize     int              `json:"vector_size"`
+	TokensUsed     int64            `json:"tokens_used"`
+	Status         string           `json:"status"`
+	ErrorMessage   string           `json:"error_message,omitempty"`
+	ProcessingInfo []ProcessingStep `json:"processing_info"`
+	CreatedAt      string           `json:"created_at"`
+	UpdatedAt      string           `json:"updated_at"`
 }
 
 // ListDocumentsResponse is the paginated list of documents in a collection.
