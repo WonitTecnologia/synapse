@@ -683,6 +683,12 @@ type CreateAgentRequest struct {
 	TextModel  string `json:"text_model,omitempty"`
 	ImageModel string `json:"image_model,omitempty"`
 	AudioModel string `json:"audio_model,omitempty"`
+	// Per-content-type fallback models. Empty = no fallback. Used when the
+	// turn's model call fails or when the sanitizer blocks the response even
+	// after the retry.
+	TextFallbackModel  string `json:"text_fallback_model,omitempty"`
+	ImageFallbackModel string `json:"image_fallback_model,omitempty"`
+	AudioFallbackModel string `json:"audio_fallback_model,omitempty"`
 }
 
 // UpdateAgentRequest is used for both full (PUT) and partial (PATCH) agent updates.
@@ -713,6 +719,10 @@ type UpdateAgentRequest struct {
 	TextModel  *string `json:"text_model,omitempty"`
 	ImageModel *string `json:"image_model,omitempty"`
 	AudioModel *string `json:"audio_model,omitempty"`
+	// Per-content-type fallback models. nil = no change; "" = remove fallback.
+	TextFallbackModel  *string `json:"text_fallback_model,omitempty"`
+	ImageFallbackModel *string `json:"image_fallback_model,omitempty"`
+	AudioFallbackModel *string `json:"audio_fallback_model,omitempty"`
 }
 
 // AgentResponse describes an AI agent.
@@ -740,6 +750,9 @@ type AgentResponse struct {
 	TextModel           string   `json:"text_model,omitempty"`
 	ImageModel          string   `json:"image_model,omitempty"`
 	AudioModel          string   `json:"audio_model,omitempty"`
+	TextFallbackModel   string   `json:"text_fallback_model,omitempty"`
+	ImageFallbackModel  string   `json:"image_fallback_model,omitempty"`
+	AudioFallbackModel  string   `json:"audio_fallback_model,omitempty"`
 	CreatedAt           string   `json:"created_at"`
 	UpdatedAt           string   `json:"updated_at"`
 }
