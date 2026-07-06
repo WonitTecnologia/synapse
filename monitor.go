@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -127,18 +126,10 @@ type wsAck struct {
 
 // EventStream is a live subscription to the monitor WebSocket. Consume events
 // from Events(); the channel is closed after Close() or context cancellation.
-// Use SubscribeConversation to filter events by conversation external_id
-// (protocol), and UnsubscribeConversation to remove the filter.
 type EventStream struct {
 	events  chan AgentEvent
 	session string
 	cancel  context.CancelFunc
-	cmdCh   chan streamCmd
-}
-
-type streamCmd struct {
-	typ string
-	ext string
 }
 
 // Events returns the channel where incoming agent events are delivered.
@@ -149,33 +140,6 @@ func (s *EventStream) Session() string { return s.session }
 
 // Close stops the stream and closes the events channel.
 func (s *EventStream) Close() { s.cancel() }
-
-// SubscribeConversation sends a subscription request to the server, asking it
-// to filter events by the given conversation external_id (protocol). The
-// server also sends recent historical logs (backfill) for that conversation.
-// After subscribing, only events matching external_id are delivered.
-func (s *EventStream) SubscribeConversation(externalID string) error {
-	if externalID == "" {
-		return fmt.Errorf("synapse/monitor: external_id não pode ser vazio")
-	}
-	select {
-	case s.cmdCh <- streamCmd{typ: "subscribe_conversation", ext: externalID}:
-		return nil
-	default:
-		return fmt.Errorf("synapse/monitor: command channel full")
-	}
-}
-
-// UnsubscribeConversation removes the conversation filter, restoring
-// delivery of all events for the session's scope.
-func (s *EventStream) UnsubscribeConversation() error {
-	select {
-	case s.cmdCh <- streamCmd{typ: "unsubscribe_conversation", ext: ""}:
-		return nil
-	default:
-		return fmt.Errorf("synapse/monitor: command channel full")
-	}
-}
 
 // ─── Implementation ───────────────────────────────────────────────────────────
 
@@ -225,7 +189,6 @@ func (m *monitorClient) StreamLogs(ctx context.Context, opts *StreamLogsOptions)
 		events:  make(chan AgentEvent, buffer),
 		session: session,
 		cancel:  cancel,
-		cmdCh:   make(chan streamCmd, 16),
 	}
 
 	go m.run(streamCtx, stream, wsURL, opts.OnConnect, opts.OnError)
@@ -331,13 +294,8 @@ func (m *monitorClient) dial(ctx context.Context, wsURL string) (*websocket.Conn
 }
 
 // consume reads envelopes until the connection drops, acknowledging each one
-// and delivering the events to the stream channel. It also processes subscribe
-// and unsubscribe commands from the EventStream's cmdCh, sending them over the
-// WebSocket connection. All conn writes are serialized by a mutex (gorilla
-// requires one concurrent writer).
+// and delivering the events to the stream channel.
 func (m *monitorClient) consume(ctx context.Context, conn *websocket.Conn, stream *EventStream) error {
-	var writeMu sync.Mutex
-
 	_ = conn.SetReadDeadline(time.Now().Add(wsReadWait))
 	conn.SetPingHandler(func(appData string) error {
 		_ = conn.SetReadDeadline(time.Now().Add(wsReadWait))
@@ -359,26 +317,6 @@ func (m *monitorClient) consume(ctx context.Context, conn *websocket.Conn, strea
 		}
 	}()
 
-	// Command writer: sends subscribe/unsubscribe messages over the WS.
-	// Serialized with the ack writer via writeMu.
-	go func() {
-		for {
-			select {
-			case <-done:
-				return
-			case cmd := <-stream.cmdCh:
-				msg := map[string]string{"type": cmd.typ}
-				if cmd.ext != "" {
-					msg["external_id"] = cmd.ext
-				}
-				writeMu.Lock()
-				_ = conn.SetWriteDeadline(time.Now().Add(wsWriteWait))
-				_ = conn.WriteJSON(msg)
-				writeMu.Unlock()
-			}
-		}
-	}()
-
 	for {
 		_, data, err := conn.ReadMessage()
 		if err != nil {
@@ -392,11 +330,8 @@ func (m *monitorClient) consume(ctx context.Context, conn *websocket.Conn, strea
 		}
 
 		// Acknowledge this envelope; without the "ok" the server retries.
-		writeMu.Lock()
 		_ = conn.SetWriteDeadline(time.Now().Add(wsWriteWait))
-		err = conn.WriteJSON(wsAck{Type: "ok", UUID: env.UUID})
-		writeMu.Unlock()
-		if err != nil {
+		if err := conn.WriteJSON(wsAck{Type: "ok", UUID: env.UUID}); err != nil {
 			return err
 		}
 
