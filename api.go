@@ -4,6 +4,12 @@ package synapse
 // Override it via Options.BaseURL when instantiating the client.
 const defaultBaseURL = "https://synapse.wonit.net.br"
 
+// ─── Status paths ────────────────────────────────────────────────────────────
+
+const (
+	pathStatus = "/api/status"
+)
+
 // ─── Auth paths ──────────────────────────────────────────────────────────────
 
 const (

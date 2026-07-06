@@ -104,6 +104,10 @@ type Client struct {
 	// Monitor covers the real-time agent event WebSocket (receive-only stream
 	// of chat, tool_call/MCP, RAG and error events for monitoring).
 	Monitor MonitorCase
+
+	// Status covers the service status endpoint (build, pod, dependency
+	// health, token validity and processing time).
+	Status StatusCase
 }
 
 // NewClient creates and returns a fully initialised Synapse Client.
@@ -147,5 +151,6 @@ func NewClient(token string, opts *Options) (*Client, error) {
 		Mcp:         newMcpClient(hc),
 		ExternalApi: newExternalApiClient(hc),
 		Monitor:     newMonitorClient(hc),
+		Status:      newStatusClient(hc),
 	}, nil
 }
