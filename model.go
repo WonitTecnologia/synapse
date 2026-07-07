@@ -1249,26 +1249,34 @@ type QueueStatsResponse struct {
 	Outputs QueueSummary `json:"outputs"`
 }
 
-// QueuedJob is a pending job inspected non-destructively via XRANGE.
+// QueuedJob is a job in the dispatch queue (pending or processing).
 type QueuedJob struct {
-	RedisID    string    `json:"redis_id"`
-	JobID      string    `json:"job_id"`
-	TenantUUID string    `json:"tenant_uuid,omitempty"`
-	AgentUUID  string    `json:"agent_uuid,omitempty"`
-	Destino    string    `json:"destino,omitempty"`
-	Message    string    `json:"message,omitempty"`
-	ExternalID string    `json:"external_id,omitempty"`
-	EnqueuedAt string    `json:"enqueued_at"`
+	RedisID    string `json:"redis_id"`
+	JobID      string `json:"job_id"`
+	TenantUUID string `json:"tenant_uuid,omitempty"`
+	AgentUUID  string `json:"agent_uuid,omitempty"`
+	Destino    string `json:"destino,omitempty"`
+	Message    string `json:"message,omitempty"`
+	ExternalID string `json:"external_id,omitempty"`
+	EnqueuedAt string `json:"enqueued_at"`
+	Status     string `json:"status"`
+	Consumer   string `json:"consumer,omitempty"`
+	RetryCount int64  `json:"retry_count"`
+	IdleMs     int64  `json:"idle_ms,omitempty"`
+	LastError  string `json:"last_error,omitempty"`
 }
 
-// PagedJobs contains a paginated list of jobs plus the stream total.
+// PagedJobs contains a paginated list of jobs plus the stream total and a cursor
+// for the next page (opaque Redis stream ID).
 type PagedJobs struct {
-	Total int64        `json:"total"`
-	Items []QueuedJob  `json:"items"`
+	Total      int64       `json:"total"`
+	Items      []QueuedJob `json:"items"`
+	NextCursor string      `json:"next_cursor,omitempty"`
 }
 
-// ListQueuedJobsParams holds the optional filters for listing pending jobs.
+// ListQueuedJobsParams holds the optional filters and cursor for listing jobs.
 type ListQueuedJobsParams struct {
 	TenantUUID string
+	Cursor     string
 	Count      int64
 }

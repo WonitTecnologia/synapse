@@ -42,6 +42,9 @@ func (d *dispatchClient) ListJobs(ctx context.Context, params ListQueuedJobsPara
 	if params.TenantUUID != "" {
 		q.Set("tenant_uuid", params.TenantUUID)
 	}
+	if params.Cursor != "" {
+		q.Set("cursor", params.Cursor)
+	}
 	if params.Count > 0 {
 		q.Set("count", strconv.FormatInt(params.Count, 10))
 	}
