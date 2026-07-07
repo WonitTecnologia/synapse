@@ -148,8 +148,9 @@ const (
 // ─── Dispatch paths ──────────────────────────────────────────────────────────
 
 const (
-	pathDispatchQueueStats = "/api/dispatch/queue/stats"
-	pathDispatchQueueJobs  = "/api/dispatch/queue/jobs"
+	pathDispatchQueueStats      = "/api/dispatch/queue/stats"
+	pathDispatchQueueJobs       = "/api/dispatch/queue/jobs"
+	pathDispatchQueueJobDelete  = "/api/dispatch/queue/jobs/%s"
 )
 
 // ─── Monitor (WebSocket) paths ────────────────────────────────────────────────
