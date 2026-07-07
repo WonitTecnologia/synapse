@@ -1062,6 +1062,12 @@ type CreateMcpIntegrationRequest struct {
 	BaseURL string `json:"base_url"`
 	// Token is the Bearer token sent in every request to the MCP server.
 	Token string `json:"token"`
+	// ApiIP is the internal IP to reach the MCP server (optional). When set,
+	// the SDK client uses this as the connection target while sending ApiHost
+	// in the Host header.
+	ApiIP string `json:"api_ip,omitempty"`
+	// ApiHost is the DNS name sent as Host header when ApiIP is used.
+	ApiHost string `json:"api_host,omitempty"`
 }
 
 // UpdateMcpIntegrationRequest is the body for partially updating an MCP integration.
@@ -1070,6 +1076,8 @@ type UpdateMcpIntegrationRequest struct {
 	Description *string `json:"description,omitempty"`
 	BaseURL     *string `json:"base_url,omitempty"`
 	Token       *string `json:"token,omitempty"`
+	ApiIP       *string `json:"api_ip,omitempty"`
+	ApiHost     *string `json:"api_host,omitempty"`
 }
 
 // ToggleMcpIntegrationRequest is the body for activating or deactivating an MCP integration.
@@ -1084,6 +1092,8 @@ type McpIntegrationResponse struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	BaseURL     string `json:"base_url"`
+	ApiIP       string `json:"api_ip,omitempty"`
+	ApiHost     string `json:"api_host,omitempty"`
 	IsActive    bool   `json:"is_active"`
 	CreatedAt   string `json:"created_at"`
 	UpdatedAt   string `json:"updated_at"`
