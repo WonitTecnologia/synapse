@@ -108,6 +108,10 @@ type Client struct {
 	// Status covers the service status endpoint (build, pod, dependency
 	// health, token validity and processing time).
 	Status StatusCase
+
+	// Dispatch covers the queue observability endpoints (worker status, pending
+	// jobs, stream metrics).
+	Dispatch DispatchCase
 }
 
 // NewClient creates and returns a fully initialised Synapse Client.
@@ -152,5 +156,6 @@ func NewClient(token string, opts *Options) (*Client, error) {
 		ExternalApi: newExternalApiClient(hc),
 		Monitor:     newMonitorClient(hc),
 		Status:      newStatusClient(hc),
+		Dispatch:    newDispatchClient(hc),
 	}, nil
 }

@@ -1225,3 +1225,50 @@ type ThoughtSearchResponse struct {
 	Thoughts []ThoughtItem `json:"thoughts"`
 	Total    int           `json:"total"`
 }
+
+// ─── Dispatch Queue ───────────────────────────────────────────────────────────
+
+// QueueActiveConsumer represents an active consumer of a Redis Stream group.
+type QueueActiveConsumer struct {
+	Name         string `json:"name"`
+	PendingCount int64  `json:"pending_count"`
+	IdleMs       int64  `json:"idle_ms"`
+}
+
+// QueueSummary describes the state of a stream and its consumer group.
+type QueueSummary struct {
+	Stream       string                `json:"stream"`
+	Group        string                `json:"group"`
+	TotalPending int64                 `json:"total_pending"`
+	Consumers    []QueueActiveConsumer `json:"consumers,omitempty"`
+}
+
+// QueueStatsResponse aggregates metrics from both dispatch streams.
+type QueueStatsResponse struct {
+	Jobs    QueueSummary `json:"jobs"`
+	Outputs QueueSummary `json:"outputs"`
+}
+
+// QueuedJob is a pending job inspected non-destructively via XRANGE.
+type QueuedJob struct {
+	RedisID    string    `json:"redis_id"`
+	JobID      string    `json:"job_id"`
+	TenantUUID string    `json:"tenant_uuid,omitempty"`
+	AgentUUID  string    `json:"agent_uuid,omitempty"`
+	Destino    string    `json:"destino,omitempty"`
+	Message    string    `json:"message,omitempty"`
+	ExternalID string    `json:"external_id,omitempty"`
+	EnqueuedAt string    `json:"enqueued_at"`
+}
+
+// PagedJobs contains a paginated list of jobs plus the stream total.
+type PagedJobs struct {
+	Total int64        `json:"total"`
+	Items []QueuedJob  `json:"items"`
+}
+
+// ListQueuedJobsParams holds the optional filters for listing pending jobs.
+type ListQueuedJobsParams struct {
+	TenantUUID string
+	Count      int64
+}

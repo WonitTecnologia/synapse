@@ -145,6 +145,13 @@ const (
 	pathExternalApiToggle = "/api/external-apis/%s/toggle"
 )
 
+// ─── Dispatch paths ──────────────────────────────────────────────────────────
+
+const (
+	pathDispatchQueueStats = "/api/dispatch/queue/stats"
+	pathDispatchQueueJobs  = "/api/dispatch/queue/jobs"
+)
+
 // ─── Monitor (WebSocket) paths ────────────────────────────────────────────────
 const (
 	pathMonitorLogsWS = "/api/websocket/application/monitor/logs"

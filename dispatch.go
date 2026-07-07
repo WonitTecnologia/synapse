@@ -1,0 +1,49 @@
+package synapse
+
+import (
+	"context"
+	"fmt"
+	"net/url"
+	"strconv"
+)
+
+// DispatchCase provides access to the dispatch queue observability endpoints.
+type DispatchCase interface {
+	// GetQueueStats returns the state of the jobs and outputs Redis streams,
+	// including active consumers (workers) and their idle times.
+	GetQueueStats(ctx context.Context) (*QueueStatsResponse, error)
+	// ListJobs returns pending jobs from the synapse:jobs stream (non-destructive read).
+	// Use params.TenantUUID to filter by tenant; params.Count defaults to 50 (max 200).
+	ListJobs(ctx context.Context, params ListQueuedJobsParams) (*PagedJobs, error)
+}
+
+type dispatchClient struct {
+	http *httpClient
+}
+
+func newDispatchClient(hc *httpClient) DispatchCase {
+	return &dispatchClient{http: hc}
+}
+
+func (d *dispatchClient) GetQueueStats(ctx context.Context) (*QueueStatsResponse, error) {
+	var out QueueStatsResponse
+	if err := d.http.get(ctx, pathDispatchQueueStats, nil, &out); err != nil {
+		return nil, fmt.Errorf("synapse/dispatch.GetQueueStats: %w", err)
+	}
+	return &out, nil
+}
+
+func (d *dispatchClient) ListJobs(ctx context.Context, params ListQueuedJobsParams) (*PagedJobs, error) {
+	q := url.Values{}
+	if params.TenantUUID != "" {
+		q.Set("tenant_uuid", params.TenantUUID)
+	}
+	if params.Count > 0 {
+		q.Set("count", strconv.FormatInt(params.Count, 10))
+	}
+	var out PagedJobs
+	if err := d.http.get(ctx, pathDispatchQueueJobs, q, &out); err != nil {
+		return nil, fmt.Errorf("synapse/dispatch.ListJobs: %w", err)
+	}
+	return &out, nil
+}
