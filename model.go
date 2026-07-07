@@ -1058,26 +1058,20 @@ type KeyInfo struct {
 type CreateMcpIntegrationRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description,omitempty"`
-	// BaseURL is the root URL of the MCP server (e.g. "https://pabx.wonit.cloud").
-	BaseURL string `json:"base_url"`
-	// Token is the Bearer token sent in every request to the MCP server.
-	Token string `json:"token"`
+	BaseURL     string `json:"base_url"`
+	Token       string `json:"token"`
 	// ApiIP is the internal IP to reach the MCP server (optional). When set,
-	// the SDK client uses this as the connection target while sending ApiHost
-	// in the Host header.
+	// the Synapse MCP client connects via this IP and derives the Host header
+	// from BaseURL.
 	ApiIP string `json:"api_ip,omitempty"`
-	// ApiHost is the DNS name sent as Host header when ApiIP is used.
-	ApiHost string `json:"api_host,omitempty"`
 }
 
-// UpdateMcpIntegrationRequest is the body for partially updating an MCP integration.
 type UpdateMcpIntegrationRequest struct {
 	Name        *string `json:"name,omitempty"`
 	Description *string `json:"description,omitempty"`
 	BaseURL     *string `json:"base_url,omitempty"`
 	Token       *string `json:"token,omitempty"`
 	ApiIP       *string `json:"api_ip,omitempty"`
-	ApiHost     *string `json:"api_host,omitempty"`
 }
 
 // ToggleMcpIntegrationRequest is the body for activating or deactivating an MCP integration.
@@ -1085,7 +1079,6 @@ type ToggleMcpIntegrationRequest struct {
 	IsActive bool `json:"is_active"`
 }
 
-// McpIntegrationResponse describes a registered MCP server integration.
 type McpIntegrationResponse struct {
 	UUID        string `json:"uuid"`
 	TenantUUID  string `json:"tenant_uuid"`
@@ -1093,7 +1086,6 @@ type McpIntegrationResponse struct {
 	Description string `json:"description"`
 	BaseURL     string `json:"base_url"`
 	ApiIP       string `json:"api_ip,omitempty"`
-	ApiHost     string `json:"api_host,omitempty"`
 	IsActive    bool   `json:"is_active"`
 	CreatedAt   string `json:"created_at"`
 	UpdatedAt   string `json:"updated_at"`
