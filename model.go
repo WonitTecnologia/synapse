@@ -827,6 +827,29 @@ type ChatRequest struct {
 	Attachment *ChatAttachment `json:"attachment,omitempty"`
 }
 
+// DispatchRequest is the body for the asynchronous, durable processing endpoint.
+// It embeds ChatRequest (same fields) and adds the delivery data used when the
+// final output is sent back through the PABX central MCP tool. The call returns
+// immediately (202) with a job id; processing runs in a dedicated worker and
+// survives restarts.
+type DispatchRequest struct {
+	ChatRequest
+	// WebhookID is the CSA webhook used to deliver the final message on the PABX side.
+	WebhookID string `json:"webhook_id,omitempty"`
+	// Destino is the destination number (the PABX also resolves it from the protocol).
+	Destino string `json:"destino,omitempty"`
+	// TriggerFileID sends a PABX trigger file (gatilho) as part of the answer.
+	TriggerFileID string `json:"trigger_file_id,omitempty"`
+	// ExternalID is a client-defined correlation id.
+	ExternalID string `json:"external_id,omitempty"`
+}
+
+// DispatchResponse confirms the job was queued (HTTP 202).
+type DispatchResponse struct {
+	JobID  string `json:"job_id"`
+	Status string `json:"status"` // always "queued"
+}
+
 // ChatReference is a document chunk retrieved from Qdrant and used in the RAG context.
 type ChatReference struct {
 	Filename   string  `json:"filename"`

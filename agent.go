@@ -47,6 +47,14 @@ type AgentCase interface {
 	// SYSTEM_ADMIN can chat with agents from any tenant.
 	Chat(ctx context.Context, req ChatRequest) (*ChatResponse, error)
 
+	// Dispatch enqueues an agent turn for asynchronous, durable processing and
+	// returns immediately (202) with a job id. The heavy work (RAG + LLM + tools)
+	// runs in a dedicated worker and survives restarts; the final reply is
+	// delivered later via the PABX central MCP tool. Use req.WebhookID / Destino /
+	// TriggerFileID to carry the delivery data. Prefer this over Chat when the
+	// caller must not block on processing (e.g. PABX message flows).
+	Dispatch(ctx context.Context, req DispatchRequest) (*DispatchResponse, error)
+
 	// ListConversations returns a paginated list of conversation summaries.
 	// SYSTEM_ADMIN lists conversations from all tenants; other roles are scoped to their own tenant.
 	// Use params.AgentUUID to filter by a specific agent.
@@ -166,6 +174,14 @@ func (a *agentClient) Chat(ctx context.Context, req ChatRequest) (*ChatResponse,
 	var out ChatResponse
 	if err := a.http.post(ctx, pathAgentChat, req, &out); err != nil {
 		return nil, fmt.Errorf("synapse/agent.Chat: %w", err)
+	}
+	return &out, nil
+}
+
+func (a *agentClient) Dispatch(ctx context.Context, req DispatchRequest) (*DispatchResponse, error) {
+	var out DispatchResponse
+	if err := a.http.post(ctx, pathAgentDispatch, req, &out); err != nil {
+		return nil, fmt.Errorf("synapse/agent.Dispatch: %w", err)
 	}
 	return &out, nil
 }

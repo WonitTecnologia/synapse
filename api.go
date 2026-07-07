@@ -110,6 +110,7 @@ const (
 const (
 	pathAgent             = "/api/agent/domain/agent"
 	pathAgentChat         = "/api/agent/application/agent/chat"
+	pathAgentDispatch     = "/api/agent/application/agent/dispatch"
 	pathAgentConversation = "/api/agent/application/agent/conversation"
 )
 
