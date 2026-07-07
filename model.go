@@ -1266,6 +1266,7 @@ type QueuedJob struct {
 	RetryCount int64  `json:"retry_count"`
 	IdleMs     int64  `json:"idle_ms,omitempty"`
 	LastError  string `json:"last_error,omitempty"`
+	RawPayload string `json:"raw,omitempty"`
 }
 
 // PagedJobs contains a paginated list of jobs plus the stream total and a cursor
