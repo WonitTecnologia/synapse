@@ -145,12 +145,21 @@ const (
 	pathExternalApiToggle = "/api/external-apis/%s/toggle"
 )
 
+// ─── API Artifact paths ───────────────────────────────────────────────────────
+// Formatted with the agent UUID (and the artifact UUID where applicable).
+const (
+	pathAgentArtifacts      = "/api/agent/application/agent/%s/artifacts"
+	pathAgentArtifact       = "/api/agent/application/agent/%s/artifacts/%s"
+	pathAgentArtifactToggle = "/api/agent/application/agent/%s/artifacts/%s/toggle"
+	pathAgentArtifactCache  = "/api/agent/application/agent/%s/artifact-cache"
+)
+
 // ─── Dispatch paths ──────────────────────────────────────────────────────────
 
 const (
-	pathDispatchQueueStats      = "/api/dispatch/queue/stats"
-	pathDispatchQueueJobs       = "/api/dispatch/queue/jobs"
-	pathDispatchQueueJobDelete  = "/api/dispatch/queue/jobs/%s"
+	pathDispatchQueueStats     = "/api/dispatch/queue/stats"
+	pathDispatchQueueJobs      = "/api/dispatch/queue/jobs"
+	pathDispatchQueueJobDelete = "/api/dispatch/queue/jobs/%s"
 )
 
 // ─── Monitor (WebSocket) paths ────────────────────────────────────────────────

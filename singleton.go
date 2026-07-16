@@ -101,6 +101,10 @@ type Client struct {
 	// ExternalApi covers external API tool management (raw HTTP APIs as agent tools).
 	ExternalApi ExternalApiCase
 
+	// ApiArtifact covers API Artifacts — per-agent pipelines of chained external
+	// API tools with per-step prompts and a per-conversation Redis cache.
+	ApiArtifact ApiArtifactCase
+
 	// Monitor covers the real-time agent event WebSocket (receive-only stream
 	// of chat, tool_call/MCP, RAG and error events for monitoring).
 	Monitor MonitorCase
@@ -154,6 +158,7 @@ func NewClient(token string, opts *Options) (*Client, error) {
 		Agent:       newAgentClient(hc),
 		Mcp:         newMcpClient(hc),
 		ExternalApi: newExternalApiClient(hc),
+		ApiArtifact: newApiArtifactClient(hc),
 		Monitor:     newMonitorClient(hc),
 		Status:      newStatusClient(hc),
 		Dispatch:    newDispatchClient(hc),

@@ -1,5 +1,7 @@
 package synapse
 
+import "encoding/json"
+
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
 // LoginRequest holds the credentials for the login endpoint.
@@ -703,9 +705,13 @@ type CreateAgentRequest struct {
 	// ThoughtsEnabled enables the agent's working memory ("brain"): the model can store,
 	// recall, update and clear thoughts (e.g. an id returned by an API) within a conversation,
 	// kept in Redis with a per-conversation TTL.
-	ThoughtsEnabled *bool  `json:"thoughts_enabled,omitempty"`
-	AcceptFiles     *bool  `json:"accept_files,omitempty"`
-	FileModel       string `json:"file_model,omitempty"`
+	ThoughtsEnabled *bool `json:"thoughts_enabled,omitempty"`
+	// ApiArtifactsEnabled enables API Artifacts (pipelines of chained external API
+	// tools) for this agent. When enabled, each active artifact becomes ONE tool
+	// and the APIs that are pipeline nodes stop appearing as individual tools.
+	ApiArtifactsEnabled *bool  `json:"api_artifacts_enabled,omitempty"`
+	AcceptFiles         *bool  `json:"accept_files,omitempty"`
+	FileModel           string `json:"file_model,omitempty"`
 	// Per-content-type model overrides. Empty = fall back to Model (the main,
 	// textual model). When an image/audio attachment arrives, the turn is routed
 	// to the matching model; text-only turns use TextModel when set.
@@ -741,9 +747,11 @@ type UpdateAgentRequest struct {
 	// ApiToolUUIDs: nil = no change, []string{} = remove all, ["uuid1"] = replace all.
 	ApiToolUUIDs *[]string `json:"api_tool_uuids,omitempty"`
 	// ThoughtsEnabled toggles the agent's working memory ("brain") backed by Redis.
-	ThoughtsEnabled *bool   `json:"thoughts_enabled,omitempty"`
-	AcceptFiles     *bool   `json:"accept_files,omitempty"`
-	FileModel       *string `json:"file_model,omitempty"`
+	ThoughtsEnabled *bool `json:"thoughts_enabled,omitempty"`
+	// ApiArtifactsEnabled toggles API Artifacts (pipelines of chained external API tools).
+	ApiArtifactsEnabled *bool   `json:"api_artifacts_enabled,omitempty"`
+	AcceptFiles         *bool   `json:"accept_files,omitempty"`
+	FileModel           *string `json:"file_model,omitempty"`
 	// Per-content-type model overrides. nil = no change; "" = revert to Model.
 	TextModel  *string `json:"text_model,omitempty"`
 	ImageModel *string `json:"image_model,omitempty"`
@@ -773,6 +781,7 @@ type AgentResponse struct {
 	ApiToolsEnabled     bool     `json:"api_tools_enabled"`
 	ApiToolUUIDs        []string `json:"api_tool_uuids"`
 	ThoughtsEnabled     bool     `json:"thoughts_enabled"`
+	ApiArtifactsEnabled bool     `json:"api_artifacts_enabled"`
 	ActivePromptUUID    string   `json:"active_prompt_uuid,omitempty"`
 	AcceptFiles         bool     `json:"accept_files"`
 	FileModel           string   `json:"file_model,omitempty"`
@@ -791,6 +800,79 @@ type ListAgentsResponse struct {
 	Agents []AgentResponse `json:"agents"`
 	Page   int             `json:"page"`
 	Size   int             `json:"size"`
+}
+
+// ─── API Artifact ─────────────────────────────────────────────────────────────
+
+// ApiArtifactResponse describes an API Artifact: a per-agent pipeline of chained
+// external API tools. The tenant draws a graph (nodes = the agent's API tools,
+// connections = dependencies) with an executor prompt and a per-node prompt; in
+// chat, each active artifact becomes ONE tool (artefato_<name>) run by an
+// internal executor agent that caches every step's return in Redis per
+// conversation. Requires the agent flag api_artifacts_enabled.
+type ApiArtifactResponse struct {
+	UUID        string `json:"uuid"`
+	TenantUUID  string `json:"tenant_uuid"`
+	AgentUUID   string `json:"agent_uuid"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	// Prompt instructs the internal executor agent on how to follow the flow.
+	Prompt string `json:"prompt"`
+	// FlowData is the graph JSON: {"nodes":[{id, api_tool_uuid, position, data:{label,
+	// prompt, mappings:[{param, from:{node_id, path}}]}}], "connections":[{source, target}]}.
+	FlowData  json.RawMessage `json:"flow_data"`
+	IsActive  bool            `json:"is_active"`
+	NodeCount int             `json:"node_count"`
+	CreatedAt string          `json:"created_at"`
+	UpdatedAt string          `json:"updated_at"`
+}
+
+// ApiArtifactListResponse lists the artifacts of an agent.
+type ApiArtifactListResponse struct {
+	Artifacts []ApiArtifactResponse `json:"artifacts"`
+	Total     int                   `json:"total"`
+}
+
+// CreateApiArtifactRequest is the body for creating an API Artifact.
+// Name must match ^[a-zA-Z0-9_-]{1,64}$ (it becomes the tool artefato_<name>).
+// Every node's api_tool_uuid must reference an API tool linked to the agent and
+// active; the graph must be acyclic and mappings may only read from ancestors.
+type CreateApiArtifactRequest struct {
+	Name        string          `json:"name"`
+	Description string          `json:"description,omitempty"`
+	Prompt      string          `json:"prompt,omitempty"`
+	FlowData    json.RawMessage `json:"flow_data"`
+	// IsActive defaults to false — nothing activates on its own.
+	IsActive *bool `json:"is_active,omitempty"`
+}
+
+// UpdateApiArtifactRequest patches an API Artifact; nil fields are unchanged.
+type UpdateApiArtifactRequest struct {
+	Name        *string          `json:"name,omitempty"`
+	Description *string          `json:"description,omitempty"`
+	Prompt      *string          `json:"prompt,omitempty"`
+	FlowData    *json.RawMessage `json:"flow_data,omitempty"`
+	IsActive    *bool            `json:"is_active,omitempty"`
+}
+
+// ArtifactCacheEntry is one cached step result of an artifact in a conversation
+// (the executor's memory, kept in Redis with a 24h TTL renewed on access).
+type ArtifactCacheEntry struct {
+	ArtifactUUID string         `json:"artifact_uuid"`
+	NodeID       string         `json:"node_id"`
+	Label        string         `json:"label"`
+	ToolName     string         `json:"tool_name"`
+	Params       map[string]any `json:"params"`
+	Response     string         `json:"response"`
+	StatusCode   int            `json:"status_code"`
+	CacheHits    int            `json:"cache_hits"`
+	ExecutedAt   string         `json:"executed_at"`
+}
+
+// ArtifactCacheResponse lists the cached artifact steps of a conversation.
+type ArtifactCacheResponse struct {
+	Entries []ArtifactCacheEntry `json:"entries"`
+	Total   int                  `json:"total"`
 }
 
 // ChatAttachment carries a file/media to be analysed by an agent that accepts attachments.
