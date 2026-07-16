@@ -19,9 +19,11 @@ import (
 // MonitorCase provides access to the real-time agent event WebSocket.
 //
 // The stream is receive-only: the server pushes agent execution events (chat,
-// tool_call/MCP, RAG, errors, file processing) and the SDK automatically
-// acknowledges each delivery. A master (SYSTEM_ADMIN) token receives events
-// from every tenant; a tenant token receives only its own tenant's events.
+// tool_call/MCP, RAG, errors, file processing and tool_agent — internal
+// verification agents such as the grounding judge, the parameter judge and the
+// API artifact executor) and the SDK automatically acknowledges each delivery.
+// A master (SYSTEM_ADMIN) token receives events from every tenant; a tenant
+// token receives only its own tenant's events.
 type MonitorCase interface {
 	// StreamLogs opens the monitor WebSocket and keeps it alive, reconnecting
 	// automatically with the same session until ctx is cancelled or the
@@ -56,6 +58,11 @@ const (
 	EventCategoryRAG         = "rag"
 	EventCategoryError       = "error"
 	EventCategoryFileProcess = "file_process"
+	// EventCategoryToolAgent is one execution of an internal verification agent
+	// (response judge, parameter judge, API artifact executor). Detail carries
+	// tool_agent ("judge" | "param_judge" | "api_artifact"), status, findings
+	// and the execution's token usage; Tokens mirrors that usage for transport.
+	EventCategoryToolAgent = "tool_agent"
 )
 
 // AgentEventRagChunk is one retrieved RAG chunk with its source file and
