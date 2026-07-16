@@ -109,6 +109,7 @@ const (
 
 const (
 	pathAgent             = "/api/agent/domain/agent"
+	pathAgentDuplicate    = "/api/agent/domain/agent/%s/duplicate"
 	pathAgentChat         = "/api/agent/application/agent/chat"
 	pathAgentDispatch     = "/api/agent/application/agent/dispatch"
 	pathAgentConversation = "/api/agent/application/agent/conversation"

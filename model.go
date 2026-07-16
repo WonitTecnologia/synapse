@@ -762,6 +762,12 @@ type UpdateAgentRequest struct {
 	AudioFallbackModel *string `json:"audio_fallback_model,omitempty"`
 }
 
+// DuplicateAgentRequest is the payload for AgentCase.Duplicate — only the name
+// of the copy; everything else is inherited from the source agent.
+type DuplicateAgentRequest struct {
+	Name string `json:"name"`
+}
+
 // AgentResponse describes an AI agent.
 type AgentResponse struct {
 	UUID                string   `json:"uuid"`

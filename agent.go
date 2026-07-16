@@ -37,6 +37,12 @@ type AgentCase interface {
 	// SYSTEM_ADMIN can delete agents from any tenant.
 	Delete(ctx context.Context, agentUUID string) error
 
+	// Duplicate creates a full copy of an agent under a new name: configuration,
+	// collections, MCP integrations, external API links, prompt versions (with
+	// the active one re-pointed) and API artifacts. The copy is created in the
+	// same tenant as the source agent. Duplicated name returns 409.
+	Duplicate(ctx context.Context, agentUUID string, req DuplicateAgentRequest) (*AgentResponse, error)
+
 	// Chat sends a message to an agent and returns the response.
 	// Omit req.ConversationUUID to start a new conversation; the returned
 	// ChatResponse.ConversationUUID can be passed in subsequent calls to maintain context.
@@ -168,6 +174,14 @@ func (a *agentClient) Delete(ctx context.Context, agentUUID string) error {
 		return fmt.Errorf("synapse/agent.Delete: %w", err)
 	}
 	return nil
+}
+
+func (a *agentClient) Duplicate(ctx context.Context, agentUUID string, req DuplicateAgentRequest) (*AgentResponse, error) {
+	var out AgentResponse
+	if err := a.http.post(ctx, fmt.Sprintf(pathAgentDuplicate, agentUUID), req, &out); err != nil {
+		return nil, fmt.Errorf("synapse/agent.Duplicate: %w", err)
+	}
+	return &out, nil
 }
 
 func (a *agentClient) Chat(ctx context.Context, req ChatRequest) (*ChatResponse, error) {
