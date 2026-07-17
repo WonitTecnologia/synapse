@@ -66,6 +66,11 @@ type AgentCase interface {
 	// Use params.AgentUUID to filter by a specific agent.
 	ListConversations(ctx context.Context, params ListConversationsParams) (*ListConversationsResponse, error)
 
+	// GetConversation returns a full conversation, including its user/assistant
+	// messages — for reading or resuming an existing conversation (e.g. the
+	// Builder Agent chat). Tenant-scoped for non-SYSTEM_ADMIN tokens.
+	GetConversation(ctx context.Context, conversationUUID string) (*ConversationDetail, error)
+
 	// ListPrompts returns a paginated list of versioned prompts saved for an agent.
 	// The IsActive field in each response indicates which prompt is currently active.
 	ListPrompts(ctx context.Context, agentUUID string, page, size int) (*ListAgentPromptsResponse, error)
@@ -218,6 +223,14 @@ func (a *agentClient) ListConversations(ctx context.Context, params ListConversa
 	var out ListConversationsResponse
 	if err := a.http.get(ctx, pathAgentConversation, q, &out); err != nil {
 		return nil, fmt.Errorf("synapse/agent.ListConversations: %w", err)
+	}
+	return &out, nil
+}
+
+func (a *agentClient) GetConversation(ctx context.Context, conversationUUID string) (*ConversationDetail, error) {
+	var out ConversationDetail
+	if err := a.http.get(ctx, pathAgentConversation+"/"+conversationUUID, nil, &out); err != nil {
+		return nil, fmt.Errorf("synapse/agent.GetConversation: %w", err)
 	}
 	return &out, nil
 }

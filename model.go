@@ -1005,6 +1005,24 @@ type ListConversationsResponse struct {
 	Total         int64                  `json:"total"`
 }
 
+// ConversationDetail is a full conversation, including its messages — used to
+// read or resume an existing conversation (e.g. the Builder Agent chat).
+type ConversationDetail struct {
+	UUID       string                `json:"uuid"`
+	TenantUUID string                `json:"tenant_uuid"`
+	AgentUUID  string                `json:"agent_uuid"`
+	ExternalID *string               `json:"external_id,omitempty"`
+	Messages   []ConversationMessage `json:"messages"`
+	CreatedAt  string                `json:"created_at"`
+	UpdatedAt  string                `json:"updated_at"`
+}
+
+// ConversationMessage is a single user/assistant turn of a conversation.
+type ConversationMessage struct {
+	Role    string `json:"role"`
+	Content string `json:"content"`
+}
+
 // ListConversationsParams holds query parameters for the conversation list endpoint.
 type ListConversationsParams struct {
 	// AgentUUID filters conversations by a specific agent (optional).
