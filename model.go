@@ -878,9 +878,24 @@ type ArtifactCacheEntry struct {
 	ExecutedAt   string         `json:"executed_at"`
 }
 
-// ArtifactCacheResponse lists the cached artifact steps of a conversation.
+// ArtifactRunEntry is one execution of an artifact in a conversation — the run
+// journal the executor reads back as [PREVIOUS RUNS] to continue where it left
+// off (last 8 runs per artifact, same Redis hash/TTL as the cache).
+type ArtifactRunEntry struct {
+	ArtifactUUID string `json:"artifact_uuid"`
+	At           string `json:"at"`
+	Objective    string `json:"objective,omitempty"`
+	// Passos holds one "<label>=<status>" per step (executado|cache|pulado|erro).
+	Passos []string `json:"passos"`
+	// Error is the instructive error that stopped the pipeline (empty on success).
+	Error string `json:"error,omitempty"`
+}
+
+// ArtifactCacheResponse lists the cached artifact steps of a conversation and
+// the run journal (Runs, oldest first) of its artifacts.
 type ArtifactCacheResponse struct {
 	Entries []ArtifactCacheEntry `json:"entries"`
+	Runs    []ArtifactRunEntry   `json:"runs"`
 	Total   int                  `json:"total"`
 }
 
