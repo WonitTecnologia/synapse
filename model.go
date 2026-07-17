@@ -824,8 +824,11 @@ type ApiArtifactResponse struct {
 	Description string `json:"description"`
 	// Prompt instructs the internal executor agent on how to follow the flow.
 	Prompt string `json:"prompt"`
-	// FlowData is the graph JSON: {"nodes":[{id, api_tool_uuid, position, data:{label,
-	// prompt, mappings:[{param, from:{node_id, path}}]}}], "connections":[{source, target}]}.
+	// FlowData is the graph JSON: {"nodes":[{id, api_tool_uuid, position: {x, y},
+	// data:{label, prompt, when, mappings:[{param, from:{node_id, path}}]}}],
+	// "connections":[{source, target}]}. "position" is builder-only (ignored by
+	// execution); "when" is an optional plain-text execution condition — the
+	// executor's planner only selects the step when it holds for the conversation.
 	FlowData  json.RawMessage `json:"flow_data"`
 	IsActive  bool            `json:"is_active"`
 	NodeCount int             `json:"node_count"`
