@@ -95,6 +95,10 @@ type Client struct {
 	// Agent covers AI agent CRUD operations and chat (including RAG).
 	Agent AgentCase
 
+	// SystemAgent covers platform-owned system agents (SYSTEM_ADMIN-managed;
+	// chat is billed on the caller tenant's OpenRouter key).
+	SystemAgent SystemAgentCase
+
 	// Mcp covers MCP (Model Context Protocol) server integration management.
 	Mcp McpCase
 
@@ -156,6 +160,7 @@ func NewClient(token string, opts *Options) (*Client, error) {
 		Collection:  newCollectionClient(hc),
 		Document:    newDocumentClient(hc),
 		Agent:       newAgentClient(hc),
+		SystemAgent: newSystemAgentClient(hc),
 		Mcp:         newMcpClient(hc),
 		ExternalApi: newExternalApiClient(hc),
 		ApiArtifact: newApiArtifactClient(hc),

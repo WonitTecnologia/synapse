@@ -113,6 +113,9 @@ const (
 	pathAgentChat         = "/api/agent/application/agent/chat"
 	pathAgentDispatch     = "/api/agent/application/agent/dispatch"
 	pathAgentConversation = "/api/agent/application/agent/conversation"
+
+	// System agents (platform-owned, SYSTEM_ADMIN-managed).
+	pathSystemAgent = "/api/agent/domain/system-agent"
 )
 
 // ─── Agent Prompt paths ───────────────────────────────────────────────────────

@@ -772,6 +772,7 @@ type DuplicateAgentRequest struct {
 type AgentResponse struct {
 	UUID                string   `json:"uuid"`
 	TenantUUID          string   `json:"tenant_uuid"`
+	IsSystem            bool     `json:"is_system"`
 	Name                string   `json:"name"`
 	Description         string   `json:"description"`
 	Model               string   `json:"model"`
