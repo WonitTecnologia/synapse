@@ -41,6 +41,12 @@ type SystemAgentCase interface {
 	// accepts an existing conversation UUID or any client-defined slug (linked
 	// per tenant+agent). Attachment is ignored by this pipeline.
 	Chat(ctx context.Context, req ChatRequest) (*ChatResponse, error)
+
+	// GetPlan returns the conversation's current plan (draft, finalized or
+	// applied) as a generic JSON object — {"exists": bool, "plan": {...}}.
+	// conversationRef accepts a conversation UUID or the client-defined slug.
+	// API header values come masked. Use a TENANT token.
+	GetPlan(ctx context.Context, agentUUID, conversationRef string) (map[string]any, error)
 }
 
 // CreateSystemAgentRequest mirrors CreateAgentRequest without TenantUUID:
@@ -141,4 +147,16 @@ func (a *systemAgentClient) Chat(ctx context.Context, req ChatRequest) (*ChatRes
 		return nil, fmt.Errorf("synapse/systemagent.Chat: %w", err)
 	}
 	return &out, nil
+}
+
+func (a *systemAgentClient) GetPlan(ctx context.Context, agentUUID, conversationRef string) (map[string]any, error) {
+	q := url.Values{}
+	q.Set("agent_uuid", agentUUID)
+	q.Set("conversation_uuid", conversationRef)
+
+	var out map[string]any
+	if err := a.http.get(ctx, pathSystemAgentPlan, q, &out); err != nil {
+		return nil, fmt.Errorf("synapse/systemagent.GetPlan: %w", err)
+	}
+	return out, nil
 }

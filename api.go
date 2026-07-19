@@ -119,6 +119,9 @@ const (
 	// pathSystemAgentChat is the DEDICATED execution pipeline for system agents
 	// (no judge, sistema_* tools). Regular agents must use pathAgentChat.
 	pathSystemAgentChat = "/api/agent/application/system-agent/chat"
+	// pathSystemAgentPlan returns the conversation's current plan (draft,
+	// finalized or applied) for realtime panel rendering.
+	pathSystemAgentPlan = "/api/agent/application/system-agent/plan"
 )
 
 // ─── Agent Prompt paths ───────────────────────────────────────────────────────
