@@ -34,6 +34,13 @@ type SystemAgentCase interface {
 
 	// Delete permanently removes a system agent and all its conversations.
 	Delete(ctx context.Context, agentUUID string) error
+
+	// Chat talks to a system agent through its DEDICATED execution pipeline
+	// (text-only, no judge, sistema_* tools). Use a TENANT token: the turn is
+	// always billed on the caller tenant's OpenRouter key. ConversationUUID
+	// accepts an existing conversation UUID or any client-defined slug (linked
+	// per tenant+agent). Attachment is ignored by this pipeline.
+	Chat(ctx context.Context, req ChatRequest) (*ChatResponse, error)
 }
 
 // CreateSystemAgentRequest mirrors CreateAgentRequest without TenantUUID:
@@ -126,4 +133,12 @@ func (a *systemAgentClient) Delete(ctx context.Context, agentUUID string) error 
 		return fmt.Errorf("synapse/systemagent.Delete: %w", err)
 	}
 	return nil
+}
+
+func (a *systemAgentClient) Chat(ctx context.Context, req ChatRequest) (*ChatResponse, error) {
+	var out ChatResponse
+	if err := a.http.post(ctx, pathSystemAgentChat, req, &out); err != nil {
+		return nil, fmt.Errorf("synapse/systemagent.Chat: %w", err)
+	}
+	return &out, nil
 }

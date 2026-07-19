@@ -116,6 +116,9 @@ const (
 
 	// System agents (platform-owned, SYSTEM_ADMIN-managed).
 	pathSystemAgent = "/api/agent/domain/system-agent"
+	// pathSystemAgentChat is the DEDICATED execution pipeline for system agents
+	// (no judge, sistema_* tools). Regular agents must use pathAgentChat.
+	pathSystemAgentChat = "/api/agent/application/system-agent/chat"
 )
 
 // ─── Agent Prompt paths ───────────────────────────────────────────────────────
