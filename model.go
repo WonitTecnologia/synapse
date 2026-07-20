@@ -710,8 +710,13 @@ type CreateAgentRequest struct {
 	// tools) for this agent. When enabled, each active artifact becomes ONE tool
 	// and the APIs that are pipeline nodes stop appearing as individual tools.
 	ApiArtifactsEnabled *bool  `json:"api_artifacts_enabled,omitempty"`
-	AcceptFiles         *bool  `json:"accept_files,omitempty"`
-	FileModel           string `json:"file_model,omitempty"`
+	// JudgeEnabled toggles the response grounding judge (re-checks each reply and
+	// re-generates when it cites data absent from the conversation/tools). Omitted
+	// (nil) defaults to enabled on create. Does NOT affect the tool-call parameter
+	// judge, which is always on.
+	JudgeEnabled *bool  `json:"judge_enabled,omitempty"`
+	AcceptFiles  *bool  `json:"accept_files,omitempty"`
+	FileModel    string `json:"file_model,omitempty"`
 	// Per-content-type model overrides. Empty = fall back to Model (the main,
 	// textual model). When an image/audio attachment arrives, the turn is routed
 	// to the matching model; text-only turns use TextModel when set.
@@ -749,9 +754,12 @@ type UpdateAgentRequest struct {
 	// ThoughtsEnabled toggles the agent's working memory ("brain") backed by Redis.
 	ThoughtsEnabled *bool `json:"thoughts_enabled,omitempty"`
 	// ApiArtifactsEnabled toggles API Artifacts (pipelines of chained external API tools).
-	ApiArtifactsEnabled *bool   `json:"api_artifacts_enabled,omitempty"`
-	AcceptFiles         *bool   `json:"accept_files,omitempty"`
-	FileModel           *string `json:"file_model,omitempty"`
+	ApiArtifactsEnabled *bool `json:"api_artifacts_enabled,omitempty"`
+	// JudgeEnabled toggles the response grounding judge. nil = no change. Does NOT
+	// affect the always-on tool-call parameter judge.
+	JudgeEnabled *bool   `json:"judge_enabled,omitempty"`
+	AcceptFiles  *bool   `json:"accept_files,omitempty"`
+	FileModel    *string `json:"file_model,omitempty"`
 	// Per-content-type model overrides. nil = no change; "" = revert to Model.
 	TextModel  *string `json:"text_model,omitempty"`
 	ImageModel *string `json:"image_model,omitempty"`
@@ -789,6 +797,7 @@ type AgentResponse struct {
 	ApiToolUUIDs        []string `json:"api_tool_uuids"`
 	ThoughtsEnabled     bool     `json:"thoughts_enabled"`
 	ApiArtifactsEnabled bool     `json:"api_artifacts_enabled"`
+	JudgeEnabled        bool     `json:"judge_enabled"`
 	ActivePromptUUID    string   `json:"active_prompt_uuid,omitempty"`
 	AcceptFiles         bool     `json:"accept_files"`
 	FileModel           string   `json:"file_model,omitempty"`
