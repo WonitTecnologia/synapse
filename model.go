@@ -960,10 +960,20 @@ type DispatchRequest struct {
 	ExternalID string `json:"external_id,omitempty"`
 }
 
-// DispatchResponse confirms the job was queued (HTTP 202).
+// Dispatch status values returned in DispatchResponse.Status.
+const (
+	// DispatchStatusQueued: job aceito e enfileirado para processamento.
+	DispatchStatusQueued = "queued"
+	// DispatchStatusThrottled: descartado pelo anti-loop por conversa (rate/cooldown).
+	// Não há JobID; nenhum processamento/LLM ocorreu.
+	DispatchStatusThrottled = "throttled"
+)
+
+// DispatchResponse confirms the job was queued (HTTP 202). Status é "queued" no caso
+// normal ou "throttled" quando o anti-loop por conversa descarta o dispatch (sem JobID).
 type DispatchResponse struct {
 	JobID  string `json:"job_id"`
-	Status string `json:"status"` // always "queued"
+	Status string `json:"status"` // "queued" ou "throttled"
 }
 
 // ChatReference is a document chunk retrieved from Qdrant and used in the RAG context.
@@ -989,6 +999,9 @@ type ChatResponse struct {
 	AgentName        string          `json:"agent_name,omitempty"` // nome vivo do agente que processou
 	References       []ChatReference `json:"references"`
 	Rag              ChatRagInfo     `json:"rag"`
+	// Closed indica que o turno encerrou a conversa (ferramenta terminal: encerramento/
+	// transferência). O worker de dispatch usa para aplicar cooldown anti-loop.
+	Closed bool `json:"closed,omitempty"`
 }
 
 // ConversationResponse is a summary of a stored conversation (without full message content).
