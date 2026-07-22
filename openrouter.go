@@ -33,6 +33,12 @@ type OpenRouterCase interface {
 	// month for the workspace linked to the authenticated tenant.
 	GetMonthlyAnalytics(ctx context.Context, params OpenRouterMonthlyAnalyticsParams) (*OpenRouterMonthlyAnalyticsResponse, error)
 
+	// GetAllTenantsMonthlyAnalytics returns the monthly OpenRouter spend (USD),
+	// tokens and requests aggregated per tenant, sorted by cost descending, plus
+	// the month totals. SYSTEM_ADMIN only — the workspace fan-out runs server-side
+	// with the master key.
+	GetAllTenantsMonthlyAnalytics(ctx context.Context, params OpenRouterAllTenantsMonthlyParams) (*OpenRouterAllTenantsMonthlyResponse, error)
+
 	// QueryAnalytics runs an analytics query scoped to the tenant's workspace.
 	// The workspace filter is applied server-side and must not be present in
 	// req.Filters. Metrics/dimensions outside the daily materialized view (only
@@ -51,6 +57,15 @@ type OpenRouterMonthlyAnalyticsParams struct {
 	Month string
 	// Limit caps the number of rows (default 1000, max 1000).
 	Limit int
+	// TenantUUID targets another tenant's workspace. SYSTEM_ADMIN only; empty uses
+	// the caller's own tenant. Used by the Master panel to drill into one company.
+	TenantUUID string
+}
+
+// OpenRouterAllTenantsMonthlyParams are the optional parameters for GetAllTenantsMonthlyAnalytics.
+type OpenRouterAllTenantsMonthlyParams struct {
+	// Month in "YYYY-MM" format. Empty = current month.
+	Month string
 }
 
 // ─── Implementation ───────────────────────────────────────────────────────────
@@ -111,9 +126,24 @@ func (o *openrouterClient) GetMonthlyAnalytics(ctx context.Context, params OpenR
 	if params.Limit > 0 {
 		q.Set("limit", strconv.Itoa(params.Limit))
 	}
+	if params.TenantUUID != "" {
+		q.Set("tenant_uuid", params.TenantUUID)
+	}
 	var out OpenRouterMonthlyAnalyticsResponse
 	if err := o.http.get(ctx, pathOpenRouterAnalyticsMonthly, q, &out); err != nil {
 		return nil, fmt.Errorf("synapse/openrouter.GetMonthlyAnalytics: %w", err)
+	}
+	return &out, nil
+}
+
+func (o *openrouterClient) GetAllTenantsMonthlyAnalytics(ctx context.Context, params OpenRouterAllTenantsMonthlyParams) (*OpenRouterAllTenantsMonthlyResponse, error) {
+	q := url.Values{}
+	if params.Month != "" {
+		q.Set("month", params.Month)
+	}
+	var out OpenRouterAllTenantsMonthlyResponse
+	if err := o.http.get(ctx, pathOpenRouterAnalyticsMonthlyAll, q, &out); err != nil {
+		return nil, fmt.Errorf("synapse/openrouter.GetAllTenantsMonthlyAnalytics: %w", err)
 	}
 	return &out, nil
 }

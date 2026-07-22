@@ -497,6 +497,27 @@ type OpenRouterMonthlyAnalyticsResponse struct {
 	Total       int                           `json:"total"`
 }
 
+// OpenRouterTenantMonthlySpend is one tenant's aggregated OpenRouter spend for a month.
+type OpenRouterTenantMonthlySpend struct {
+	TenantUUID  string  `json:"tenant_uuid"`
+	TenantName  string  `json:"tenant_name"`
+	WorkspaceID string  `json:"workspace_id"`
+	TotalUsage  float64 `json:"total_usage"`
+	TokensTotal int64   `json:"tokens_total"`
+	Requests    int64   `json:"requests"`
+}
+
+// OpenRouterAllTenantsMonthlyResponse is the monthly OpenRouter spend aggregated
+// per tenant (sorted by cost descending) plus the month totals. SYSTEM_ADMIN only.
+type OpenRouterAllTenantsMonthlyResponse struct {
+	Month       string                         `json:"month"`
+	Items       []OpenRouterTenantMonthlySpend `json:"items"`
+	TotalUsage  float64                        `json:"total_usage"`
+	TokensTotal int64                          `json:"tokens_total"`
+	Requests    int64                          `json:"requests"`
+	TenantCount int                            `json:"tenant_count"`
+}
+
 // OpenRouterAnalyticsMetricInfo describes a metric available for analytics queries.
 type OpenRouterAnalyticsMetricInfo struct {
 	Name          string `json:"name"`
@@ -709,7 +730,7 @@ type CreateAgentRequest struct {
 	// ApiArtifactsEnabled enables API Artifacts (pipelines of chained external API
 	// tools) for this agent. When enabled, each active artifact becomes ONE tool
 	// and the APIs that are pipeline nodes stop appearing as individual tools.
-	ApiArtifactsEnabled *bool  `json:"api_artifacts_enabled,omitempty"`
+	ApiArtifactsEnabled *bool `json:"api_artifacts_enabled,omitempty"`
 	// JudgeEnabled toggles the response grounding judge (re-checks each reply and
 	// re-generates when it cites data absent from the conversation/tools). Omitted
 	// (nil) defaults to enabled on create. Does NOT affect the tool-call parameter

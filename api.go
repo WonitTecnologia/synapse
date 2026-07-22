@@ -80,12 +80,13 @@ const (
 // ─── OpenRouter paths ─────────────────────────────────────────────────────────
 
 const (
-	pathOpenRouterSincronismo      = "/api/catalog/application/openrouter/sincronismo"
-	pathOpenRouterModels           = "/api/catalog/application/openrouter/models"
-	pathOpenRouterEmbeddingModels  = "/api/catalog/application/openrouter/models/embedding"
-	pathOpenRouterAnalyticsMonthly = "/api/catalog/application/openrouter/analytics/monthly"
-	pathOpenRouterAnalyticsQuery   = "/api/catalog/application/openrouter/analytics/query"
-	pathOpenRouterAnalyticsMeta    = "/api/catalog/application/openrouter/analytics/meta"
+	pathOpenRouterSincronismo         = "/api/catalog/application/openrouter/sincronismo"
+	pathOpenRouterModels              = "/api/catalog/application/openrouter/models"
+	pathOpenRouterEmbeddingModels     = "/api/catalog/application/openrouter/models/embedding"
+	pathOpenRouterAnalyticsMonthly    = "/api/catalog/application/openrouter/analytics/monthly"
+	pathOpenRouterAnalyticsMonthlyAll = "/api/catalog/application/openrouter/analytics/monthly/all"
+	pathOpenRouterAnalyticsQuery      = "/api/catalog/application/openrouter/analytics/query"
+	pathOpenRouterAnalyticsMeta       = "/api/catalog/application/openrouter/analytics/meta"
 )
 
 // ─── Knowledge – Collection paths ─────────────────────────────────────────────
