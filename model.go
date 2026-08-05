@@ -750,6 +750,14 @@ type CreateAgentRequest struct {
 	TextFallbackModel  string `json:"text_fallback_model,omitempty"`
 	ImageFallbackModel string `json:"image_fallback_model,omitempty"`
 	AudioFallbackModel string `json:"audio_fallback_model,omitempty"`
+	// QueueEnabled enables the message queue (debounce) on /dispatch: messages and
+	// attachments arriving within the time window are buffered and sent to the AI
+	// as ONE concatenated message (each message is still stored individually in the
+	// conversation history). The window renews on each new message, capped by a
+	// max total wait and a max message count so it never queues forever.
+	QueueEnabled *bool `json:"queue_enabled,omitempty"`
+	// QueueWindowSeconds is the queue debounce window in seconds. nil/<=0 = default 5s.
+	QueueWindowSeconds *int `json:"queue_window_seconds,omitempty"`
 }
 
 // UpdateAgentRequest is used for both full (PUT) and partial (PATCH) agent updates.
@@ -789,6 +797,10 @@ type UpdateAgentRequest struct {
 	TextFallbackModel  *string `json:"text_fallback_model,omitempty"`
 	ImageFallbackModel *string `json:"image_fallback_model,omitempty"`
 	AudioFallbackModel *string `json:"audio_fallback_model,omitempty"`
+	// QueueEnabled toggles the message queue (debounce) on /dispatch. nil = no change.
+	QueueEnabled *bool `json:"queue_enabled,omitempty"`
+	// QueueWindowSeconds: nil = no change; <=0 = revert to the 5s default.
+	QueueWindowSeconds *int `json:"queue_window_seconds,omitempty"`
 }
 
 // DuplicateAgentRequest is the payload for AgentCase.Duplicate — only the name
@@ -828,6 +840,8 @@ type AgentResponse struct {
 	TextFallbackModel   string   `json:"text_fallback_model,omitempty"`
 	ImageFallbackModel  string   `json:"image_fallback_model,omitempty"`
 	AudioFallbackModel  string   `json:"audio_fallback_model,omitempty"`
+	QueueEnabled        bool     `json:"queue_enabled"`
+	QueueWindowSeconds  int      `json:"queue_window_seconds"`
 	CreatedAt           string   `json:"created_at"`
 	UpdatedAt           string   `json:"updated_at"`
 }
