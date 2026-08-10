@@ -758,6 +758,8 @@ type CreateAgentRequest struct {
 	QueueEnabled *bool `json:"queue_enabled,omitempty"`
 	// QueueWindowSeconds is the queue debounce window in seconds. nil/<=0 = default 5s.
 	QueueWindowSeconds *int `json:"queue_window_seconds,omitempty"`
+	// TransferAgentUUIDs lists the agents this agent may transfer the conversation to.
+	TransferAgentUUIDs []string `json:"transfer_agent_uuids,omitempty"`
 }
 
 // UpdateAgentRequest is used for both full (PUT) and partial (PATCH) agent updates.
@@ -801,6 +803,8 @@ type UpdateAgentRequest struct {
 	QueueEnabled *bool `json:"queue_enabled,omitempty"`
 	// QueueWindowSeconds: nil = no change; <=0 = revert to the 5s default.
 	QueueWindowSeconds *int `json:"queue_window_seconds,omitempty"`
+	// TransferAgentUUIDs: nil = no change, []string{} = remove all, ["uuid1"] = replace all.
+	TransferAgentUUIDs *[]string `json:"transfer_agent_uuids,omitempty"`
 }
 
 // DuplicateAgentRequest is the payload for AgentCase.Duplicate — only the name
@@ -842,6 +846,7 @@ type AgentResponse struct {
 	AudioFallbackModel  string   `json:"audio_fallback_model,omitempty"`
 	QueueEnabled        bool     `json:"queue_enabled"`
 	QueueWindowSeconds  int      `json:"queue_window_seconds"`
+	TransferAgentUUIDs  []string `json:"transfer_agent_uuids"`
 	CreatedAt           string   `json:"created_at"`
 	UpdatedAt           string   `json:"updated_at"`
 }
@@ -1027,6 +1032,17 @@ type ChatRagInfo struct {
 	Error       string `json:"error,omitempty"`
 }
 
+// AgentTransferInfo describes an agent-to-agent transfer that happened during the
+// chat turn: the conversation was handed over to another AI agent.
+type AgentTransferInfo struct {
+	// TargetAgentUUID is the UUID of the agent the conversation was transferred to.
+	TargetAgentUUID string `json:"target_agent_uuid"`
+	// TargetAgentName is the name of the agent the conversation was transferred to.
+	TargetAgentName string `json:"target_agent_name"`
+	// Summary is the handoff summary passed to the target agent.
+	Summary string `json:"summary"`
+}
+
 // ChatResponse is the reply from the AI agent.
 type ChatResponse struct {
 	ConversationUUID string          `json:"conversation_uuid"`
@@ -1037,6 +1053,8 @@ type ChatResponse struct {
 	// Closed indica que o turno encerrou a conversa (ferramenta terminal: encerramento/
 	// transferência). O worker de dispatch usa para aplicar cooldown anti-loop.
 	Closed bool `json:"closed,omitempty"`
+	// Transfer is set when the turn transferred the conversation to another AI agent.
+	Transfer *AgentTransferInfo `json:"transfer,omitempty"`
 }
 
 // ConversationResponse is a summary of a stored conversation (without full message content).

@@ -360,6 +360,54 @@ resp, err := client.Chatvolt.Query(ctx, synapse.ChatvoltAgentQueryRequest{
 
 ---
 
+## Agent
+
+### Transferência entre agentes de IA
+
+Um agente pode transferir o atendimento para outro agente de IA do mesmo tenant.
+A configuração é feita pelo campo `TransferAgentUUIDs` (`transfer_agent_uuids`),
+presente em `CreateAgentRequest`, `UpdateAgentRequest` e `AgentResponse` — a lista
+de UUIDs dos agentes para os quais ele pode transferir a conversa:
+
+```go
+resp, err := client.Agent.Create(ctx, synapse.CreateAgentRequest{
+    Name:               "Atendente N1",
+    Model:              "openai/gpt-4o-mini",
+    Prompt:             "...",
+    TransferAgentUUIDs: []string{"uuid-do-agente-n2"},
+})
+```
+
+No update (`UpdateAgentRequest`), o campo é `*[]string` e segue a semântica dos
+demais campos de lista: `nil` = sem alteração, `[]string{}` = remove todos,
+`["uuid1"]` = substitui a lista inteira.
+
+Comportamento de cascata: quando um agente é removido, ele some automaticamente
+das listas de transferência dos demais agentes — não é preciso atualizar cada
+agente manualmente.
+
+No chat, quando ocorre uma transferência, o `ChatResponse` traz o campo `Transfer`
+(`*AgentTransferInfo`, `nil` quando não houve transferência):
+
+```go
+chat, err := client.Agent.Chat(ctx, synapse.ChatRequest{ /* ... */ })
+if chat.Transfer != nil {
+    fmt.Printf("transferido para %s (%s): %s\n",
+        chat.Transfer.TargetAgentName,
+        chat.Transfer.TargetAgentUUID,
+        chat.Transfer.Summary,
+    )
+}
+```
+
+| Campo             | Tipo     | Descrição                                    |
+|-------------------|----------|----------------------------------------------|
+| `TargetAgentUUID` | `string` | UUID do agente que recebeu a conversa        |
+| `TargetAgentName` | `string` | Nome do agente que recebeu a conversa        |
+| `Summary`         | `string` | Resumo do atendimento repassado ao agente alvo |
+
+---
+
 ## WebSocket de monitoramento (Monitor)
 
 Stream em tempo real dos eventos de execução dos agentes de IA — chat, tool calls
