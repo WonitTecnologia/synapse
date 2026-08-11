@@ -1416,9 +1416,13 @@ type ThoughtItem struct {
 }
 
 // ThoughtSearchParams holds query parameters for searching thoughts in a conversation.
-// ConversationUUID is required; Query filters by keyword (case-insensitive, content+label).
+// ConversationUUID or ExternalID is required; when ExternalID is set, the search hits the
+// memory shared by all agents that handled that attendance (thoughts are scoped by
+// external_id when the conversation has one). Query filters by keyword (case-insensitive,
+// content+label).
 type ThoughtSearchParams struct {
 	ConversationUUID string
+	ExternalID       string
 	Query            string
 }
 

@@ -344,7 +344,12 @@ func (a *agentClient) LogsStats(ctx context.Context, agentUUID string, params Li
 
 func (a *agentClient) SearchThoughts(ctx context.Context, agentUUID string, params ThoughtSearchParams) (*ThoughtSearchResponse, error) {
 	q := url.Values{}
-	q.Set("conversation_uuid", params.ConversationUUID)
+	if params.ConversationUUID != "" {
+		q.Set("conversation_uuid", params.ConversationUUID)
+	}
+	if params.ExternalID != "" {
+		q.Set("external_id", params.ExternalID)
+	}
 	if params.Query != "" {
 		q.Set("query", params.Query)
 	}
