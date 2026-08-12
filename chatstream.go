@@ -62,7 +62,8 @@ type ChatStreamAttachment struct {
 // Message are required; ConversationUUID, Context and Attachment are optional.
 //
 // Inbound (Messages): carries the agent reply — JobID, ConversationUUID,
-// AgentUUID, AgentName, Message and, when present, Attachment.
+// AgentUUID, AgentName, Message and, when present, Attachment. When Error is
+// set, the job failed with a terminal error and Message is empty.
 type ChatStreamMessage struct {
 	UUID             string                `json:"uuid,omitempty"`
 	JobID            string                `json:"job_id,omitempty"`
@@ -72,6 +73,10 @@ type ChatStreamMessage struct {
 	Message          string                `json:"message"`
 	Context          string                `json:"context,omitempty"`
 	Attachment       *ChatStreamAttachment `json:"attachment,omitempty"`
+
+	// Error is set when the job failed with a terminal error (e.g. agent not
+	// found); in that case Message is empty.
+	Error string `json:"error,omitempty"`
 }
 
 // ChatStreamAccepted is the server confirmation for a sent message frame.

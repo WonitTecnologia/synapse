@@ -659,7 +659,7 @@ Mesma semântica do monitor (`StreamLogsOptions`):
 |---|---|
 | `Send(msg ChatStreamMessage) error` | Envia mensagem ao agente. Gera UUID v4 se `msg.UUID` vazio. Thread-safe. **Sem fila no cliente**: retorna `ErrStreamNotConnected` imediatamente se desconectado — o chamador reenvia |
 | `Accepted() <-chan ChatStreamAccepted` | Confirmações de envio (`Status` = `queued`/`throttled`, ou `Error` preenchido) |
-| `Messages() <-chan ChatStreamMessage` | Respostas do agente (ACK automático) |
+| `Messages() <-chan ChatStreamMessage` | Respostas do agente (ACK automático). Erro terminal do job chega aqui com `Error` preenchido e `Message` vazia |
 | `Events() <-chan AgentEvent` | Eventos de execução das conversas da sessão (mesmo tipo do monitor, ACK automático) |
 | `Session() string` | UUID da sessão em uso |
 | `Close()` | Encerra o stream e fecha os canais |
@@ -676,6 +676,7 @@ Mesma semântica do monitor (`StreamLogsOptions`):
 | `Message` | `string` | Texto da mensagem |
 | `Context` | `string` | (envio, opcional) contexto adicional |
 | `Attachment` | `*ChatStreamAttachment` | (opcional) anexo: `URL`, `Type` (`image`/`audio`/`document`), `MimeType`, `FileName` |
+| `Error` | `string` | (recebimento) erro terminal do job (ex.: agente não encontrado) — quando preenchido, `Message` vem vazia |
 
 ### Reconexão e confirmação de envio
 
