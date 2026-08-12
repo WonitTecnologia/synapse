@@ -19,6 +19,7 @@ var (
 	ErrInternalServer           = errors.New("synapse: internal server error")
 	ErrBadGateway               = errors.New("synapse: bad gateway — upstream provider error")
 	ErrIntegrationNotConfigured = errors.New("synapse: integration not configured for this tenant")
+	ErrStreamNotConnected       = errors.New("synapse: stream not connected — the WebSocket is down or reconnecting")
 )
 
 // ─── API Error ───────────────────────────────────────────────────────────────

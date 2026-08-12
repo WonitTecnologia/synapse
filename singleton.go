@@ -113,6 +113,10 @@ type Client struct {
 	// of chat, tool_call/MCP, RAG and error events for monitoring).
 	Monitor MonitorCase
 
+	// ChatStream covers the bidirectional chat WebSocket (send messages to an
+	// agent and receive confirmations, agent replies and execution events).
+	ChatStream ChatStreamCase
+
 	// Status covers the service status endpoint (build, pod, dependency
 	// health, token validity and processing time).
 	Status StatusCase
@@ -165,6 +169,7 @@ func NewClient(token string, opts *Options) (*Client, error) {
 		ExternalApi: newExternalApiClient(hc),
 		ApiArtifact: newApiArtifactClient(hc),
 		Monitor:     newMonitorClient(hc),
+		ChatStream:  newChatStreamClient(hc),
 		Status:      newStatusClient(hc),
 		Dispatch:    newDispatchClient(hc),
 	}, nil

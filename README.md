@@ -79,6 +79,7 @@ client, err := synapse.NewClient("seu-token", &synapse.Options{
 | `client.Mcp`         | `McpCase`         | Integrações MCP (Model Context Protocol)         |
 | `client.ExternalApi` | `ExternalApiCase` | APIs externas (HTTP cruas) como tools do agente  |
 | `client.Monitor`     | `MonitorCase`     | **WebSocket de monitoramento** — stream de eventos do agente em tempo real ([ver seção](#websocket-de-monitoramento-monitor)) |
+| `client.ChatStream`  | `ChatStreamCase`  | **WebSocket de chat** — conversa bidirecional com agentes em tempo real ([ver seção](#websocket-de-chat-chatstream)) |
 
 ---
 
@@ -591,6 +592,108 @@ fmt.Println("tokens (completion):", stats.TotalCompletionTokens)
 
 ---
 
+## WebSocket de chat (ChatStream)
+
+Conversa **bidirecional** em tempo real com agentes de IA na mesma conexão:
+você envia mensagens com `Send` e recebe, em canais separados, as confirmações
+de envio (`accepted`/`error`), as respostas do agente e os eventos de execução
+das conversas da sessão. O SDK confirma automaticamente os envelopes recebidos
+(protocolo de ACK interno, igual ao monitor) e reconecta sozinho mantendo a
+mesma `Session`.
+
+- Token **master (SYSTEM_ADMIN)** → conversa com **qualquer agente**.
+- Token de **tenant** → conversa apenas com agentes do **próprio tenant**.
+
+### Uso básico
+
+```go
+stream, err := client.ChatStream.Stream(ctx, nil)
+if err != nil {
+    log.Fatal(err)
+}
+defer stream.Close()
+
+// enviar mensagem (UUID gerado pelo SDK se vazio)
+err = stream.Send(synapse.ChatStreamMessage{
+    AgentUUID: "agent-uuid",
+    Message:   "Olá!",
+})
+if errors.Is(err, synapse.ErrStreamNotConnected) {
+    // desconectado/reconectando: reenvie a mensagem (não há fila no cliente)
+}
+
+// consumir confirmações, respostas e eventos
+for {
+    select {
+    case ack := <-stream.Accepted():
+        if ack.Error != "" {
+            log.Printf("mensagem %s rejeitada: %s", ack.UUID, ack.Error)
+        } else {
+            log.Printf("mensagem %s aceita (%s), job %s", ack.UUID, ack.Status, ack.JobID)
+        }
+    case msg := <-stream.Messages():
+        fmt.Printf("[%s] %s\n", msg.AgentName, msg.Message)
+    case evt := <-stream.Events():
+        fmt.Printf("evento %s — %s\n", evt.Category, evt.Summary)
+    case <-ctx.Done():
+        return
+    }
+}
+// os canais fecham quando ctx é cancelado ou stream.Close() é chamado
+```
+
+### Opções (`ChatStreamOptions`)
+
+Mesma semântica do monitor (`StreamLogsOptions`):
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `Session` | `string` | UUID de sessão. Reconexões com a mesma session **retomam a fila de entrega** pendente no servidor. Padrão: UUID aleatório mantido pela vida do stream |
+| `Buffer` | `int` | Capacidade dos canais (`Accepted`/`Messages`/`Events`). Padrão: `256` |
+| `OnConnect` | `func(session string)` | Disparado a cada handshake bem-sucedido — conexão inicial **e** cada reconexão automática |
+| `OnError` | `func(error)` | Erros de conexão/handshake. Apenas observabilidade: a reconexão é automática (backoff 1s → 30s) |
+
+### `ChatStream`
+
+| Método | Descrição |
+|---|---|
+| `Send(msg ChatStreamMessage) error` | Envia mensagem ao agente. Gera UUID v4 se `msg.UUID` vazio. Thread-safe. **Sem fila no cliente**: retorna `ErrStreamNotConnected` imediatamente se desconectado — o chamador reenvia |
+| `Accepted() <-chan ChatStreamAccepted` | Confirmações de envio (`Status` = `queued`/`throttled`, ou `Error` preenchido) |
+| `Messages() <-chan ChatStreamMessage` | Respostas do agente (ACK automático) |
+| `Events() <-chan AgentEvent` | Eventos de execução das conversas da sessão (mesmo tipo do monitor, ACK automático) |
+| `Session() string` | UUID da sessão em uso |
+| `Close()` | Encerra o stream e fecha os canais |
+
+### `ChatStreamMessage`
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `UUID` | `string` | UUID do frame (envio: gerado pelo SDK se vazio; use para correlacionar com `Accepted`) |
+| `JobID` | `string` | (recebimento) job que processou a mensagem |
+| `AgentUUID` | `string` | Agente destino (envio) / origem (recebimento) |
+| `AgentName` | `string` | (recebimento) nome do agente |
+| `ConversationUUID` | `string` | Conversa (opcional no envio; preenchido nas respostas) |
+| `Message` | `string` | Texto da mensagem |
+| `Context` | `string` | (envio, opcional) contexto adicional |
+| `Attachment` | `*ChatStreamAttachment` | (opcional) anexo: `URL`, `Type` (`image`/`audio`/`document`), `MimeType`, `FileName` |
+
+### Reconexão e confirmação de envio
+
+- **Reconexão automática** com backoff exponencial (1s dobrando até 30s), mantendo a
+  mesma `Session` — o servidor retoma a fila pendente de onde parou.
+- **`Send` não enfileira**: durante uma queda/reconexão ele falha na hora com
+  `ErrStreamNotConnected`; guarde a mensagem e reenvie (com o mesmo `UUID`) se
+  precisar de garantia.
+- Toda mensagem enviada gera uma confirmação em `Accepted()` com o mesmo `UUID`
+  do frame — `Status` (`queued`/`throttled`) em caso de aceite, `Error` em caso
+  de rejeição.
+- Envelopes `message`/`event` seguem entrega confirmada (*at-least-once*), como
+  no monitor: dedup pelo `UUID` do envelope se isso importar para o consumidor.
+- Conexão interna: as opções `BaseURL` (IP) + `Host` do `NewClient` valem também para
+  este WebSocket (ver [Conexão interna](#conexão-interna-ip-direto--host-header)).
+
+---
+
 ## Tratamento de erros
 
 ### Verificar tipo de erro com sentinels
@@ -650,6 +753,7 @@ if apiErr, ok := synapse.AsAPIError(err); ok {
 | `synapse.ErrInternalServer`            | 500  | Erro interno da API                       |
 | `synapse.ErrBadGateway`                | 502  | Falha no provedor externo                 |
 | `synapse.ErrIntegrationNotConfigured`  | 409  | Integração não configurada para o tenant  |
+| `synapse.ErrStreamNotConnected`        | —    | `Send` no WebSocket de chat enquanto desconectado/reconectando |
 
 ---
 

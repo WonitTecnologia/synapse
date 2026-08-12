@@ -176,4 +176,5 @@ const (
 // ─── Monitor (WebSocket) paths ────────────────────────────────────────────────
 const (
 	pathMonitorLogsWS = "/api/websocket/application/monitor/logs"
+	pathChatStreamWS  = "/api/websocket/application/chat/stream"
 )

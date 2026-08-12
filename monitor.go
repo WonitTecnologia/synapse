@@ -3,12 +3,8 @@ package synapse
 import (
 	"context"
 	"crypto/rand"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"net/url"
-	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -181,7 +177,7 @@ func (m *monitorClient) StreamLogs(ctx context.Context, opts *StreamLogsOptions)
 		}
 	}
 
-	wsURL, err := m.buildURL(session)
+	wsURL, err := m.http.buildWSURL(pathMonitorLogsWS, session)
 	if err != nil {
 		return nil, fmt.Errorf("synapse/monitor.StreamLogs: %w", err)
 	}
@@ -202,29 +198,6 @@ func (m *monitorClient) StreamLogs(ctx context.Context, opts *StreamLogsOptions)
 	return stream, nil
 }
 
-// buildURL converts the API base URL into the monitor WebSocket URL.
-func (m *monitorClient) buildURL(session string) (string, error) {
-	u, err := url.Parse(m.http.baseURL)
-	if err != nil {
-		return "", fmt.Errorf("parse base URL: %w", err)
-	}
-	switch u.Scheme {
-	case "http":
-		u.Scheme = "ws"
-	case "https":
-		u.Scheme = "wss"
-	case "ws", "wss":
-		// already a websocket URL
-	default:
-		return "", fmt.Errorf("unsupported base URL scheme %q", u.Scheme)
-	}
-	u.Path = strings.TrimRight(u.Path, "/") + pathMonitorLogsWS
-	q := u.Query()
-	q.Set("session", session)
-	u.RawQuery = q.Encode()
-	return u.String(), nil
-}
-
 // run keeps the subscription alive: dial, consume, and reconnect with backoff
 // until the context is cancelled. The same session resumes the server queue.
 func (m *monitorClient) run(ctx context.Context, stream *EventStream, wsURL string, onConnect func(string), onError func(error)) {
@@ -242,7 +215,7 @@ func (m *monitorClient) run(ctx context.Context, stream *EventStream, wsURL stri
 			return
 		}
 
-		conn, err := m.dial(ctx, wsURL)
+		conn, err := m.http.dialWS(ctx, wsURL)
 		if err != nil {
 			report(fmt.Errorf("synapse/monitor: connect: %w", err))
 		} else {
@@ -270,48 +243,10 @@ func (m *monitorClient) run(ctx context.Context, stream *EventStream, wsURL stri
 	}
 }
 
-func (m *monitorClient) dial(ctx context.Context, wsURL string) (*websocket.Conn, error) {
-	header := http.Header{}
-	header.Set("User-Agent", "synapse-sdk")
-	if m.http.token != "" {
-		header.Set("Authorization", "Bearer "+m.http.token)
-	}
-	// The Host header key is honoured by the dialer, enabling the internal
-	// IP + virtual host connection mode (see Options.Host).
-	if m.http.host != "" {
-		header.Set("Host", m.http.host)
-	}
-
-	dialer := websocket.Dialer{HandshakeTimeout: wsHandshakeTimeout}
-	if m.http.host != "" && strings.HasPrefix(wsURL, "wss://") {
-		dialer.TLSClientConfig = &tls.Config{ServerName: m.http.host}
-	}
-
-	conn, resp, err := dialer.DialContext(ctx, wsURL, header)
-	if resp != nil && resp.Body != nil {
-		defer resp.Body.Close()
-	}
-	if err != nil {
-		if resp != nil {
-			return nil, fmt.Errorf("%w (status %d)", err, resp.StatusCode)
-		}
-		return nil, err
-	}
-	return conn, nil
-}
-
 // consume reads envelopes until the connection drops, acknowledging each one
 // and delivering the events to the stream channel.
 func (m *monitorClient) consume(ctx context.Context, conn *websocket.Conn, stream *EventStream) error {
-	_ = conn.SetReadDeadline(time.Now().Add(wsReadWait))
-	conn.SetPingHandler(func(appData string) error {
-		_ = conn.SetReadDeadline(time.Now().Add(wsReadWait))
-		err := conn.WriteControl(websocket.PongMessage, []byte(appData), time.Now().Add(wsWriteWait))
-		if err == websocket.ErrCloseSent {
-			return nil
-		}
-		return err
-	})
+	prepareWSConn(conn)
 
 	// Unblock the read loop as soon as the context is cancelled.
 	done := make(chan struct{})
