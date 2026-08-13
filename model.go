@@ -983,6 +983,12 @@ type ChatRequest struct {
 	Attachment *ChatAttachment `json:"attachment,omitempty"`
 }
 
+// CancelChatRequest is the body for cancelling a queued or running chat job.
+type CancelChatRequest struct {
+	// JobID is the UUID of the chat job to cancel.
+	JobID string `json:"job_id"`
+}
+
 // DispatchRequest is the body for the asynchronous, durable processing endpoint.
 // It embeds ChatRequest (same fields) and adds the delivery data used when the
 // final output is sent back through the PABX central MCP tool. The call returns

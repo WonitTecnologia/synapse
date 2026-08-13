@@ -76,6 +76,7 @@ client, err := synapse.NewClient("seu-token", &synapse.Options{
 | `client.Collection`  | `CollectionCase`  | Coleções vetoriais (Qdrant) da base de conhecimento |
 | `client.Document`    | `DocumentCase`    | Upload e vetorização de documentos               |
 | `client.Agent`       | `AgentCase`       | CRUD de agentes de IA + chat (com RAG)           |
+| `client.SystemAgent` | `SystemAgentCase` | Agentes de sistema (plataforma) + chat dedicado  |
 | `client.Mcp`         | `McpCase`         | Integrações MCP (Model Context Protocol)         |
 | `client.ExternalApi` | `ExternalApiCase` | APIs externas (HTTP cruas) como tools do agente  |
 | `client.Monitor`     | `MonitorCase`     | **WebSocket de monitoramento** — stream de eventos do agente em tempo real ([ver seção](#websocket-de-monitoramento-monitor)) |
@@ -406,6 +407,29 @@ if chat.Transfer != nil {
 | `TargetAgentUUID` | `string` | UUID do agente que recebeu a conversa        |
 | `TargetAgentName` | `string` | Nome do agente que recebeu a conversa        |
 | `Summary`         | `string` | Resumo do atendimento repassado ao agente alvo |
+
+---
+
+## System Agent
+
+Agentes de sistema são agentes da plataforma (sem tenant dono) usados em fluxos
+internos — como o construtor de agentes. O chat roda num pipeline dedicado
+(sem juiz, tools `sistema_*`) e a cobrança cai sempre na chave OpenRouter do
+tenant chamador.
+
+### Cancelar job de chat
+
+No transporte WebSocket o chat responde `202` com um `job_id` e a resposta chega
+depois pelo stream. `CancelChat` cancela esse job: se ainda estiver na fila, ele
+é descartado; se já estiver em execução, o turno é abortado no worker. `job_id`
+desconhecido **não** é erro — a flag de cancelamento vale até o job aparecer ou
+expirar (15 min).
+
+```go
+err := client.SystemAgent.CancelChat(ctx, synapse.CancelChatRequest{
+    JobID: "uuid-do-job",
+})
+```
 
 ---
 

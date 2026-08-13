@@ -123,6 +123,9 @@ const (
 	// pathSystemAgentPlan returns the conversation's current plan (draft,
 	// finalized or applied) for realtime panel rendering.
 	pathSystemAgentPlan = "/api/agent/application/system-agent/plan"
+	// pathSystemAgentChatCancel cancels a queued or running chat job: the worker
+	// drops the job from the queue or aborts the in-flight turn.
+	pathSystemAgentChatCancel = "/api/agent/application/system-agent/chat/cancel"
 )
 
 // ─── Agent Prompt paths ───────────────────────────────────────────────────────

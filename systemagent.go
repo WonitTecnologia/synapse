@@ -42,6 +42,11 @@ type SystemAgentCase interface {
 	// per tenant+agent). Attachment is ignored by this pipeline.
 	Chat(ctx context.Context, req ChatRequest) (*ChatResponse, error)
 
+	// CancelChat cancels a queued or running chat job (created via the WebSocket
+	// transport, which returns 202 with a job id). Unknown job ids are NOT an
+	// error — the flag stands until the job shows up or expires. Use a TENANT token.
+	CancelChat(ctx context.Context, req CancelChatRequest) error
+
 	// GetPlan returns the conversation's current plan (draft, finalized or
 	// applied) as a generic JSON object — {"exists": bool, "plan": {...}}.
 	// conversationRef accepts a conversation UUID or the client-defined slug.
@@ -147,6 +152,13 @@ func (a *systemAgentClient) Chat(ctx context.Context, req ChatRequest) (*ChatRes
 		return nil, fmt.Errorf("synapse/systemagent.Chat: %w", err)
 	}
 	return &out, nil
+}
+
+func (a *systemAgentClient) CancelChat(ctx context.Context, req CancelChatRequest) error {
+	if err := a.http.post(ctx, pathSystemAgentChatCancel, req, nil); err != nil {
+		return fmt.Errorf("synapse/systemagent.CancelChat: %w", err)
+	}
+	return nil
 }
 
 func (a *systemAgentClient) GetPlan(ctx context.Context, agentUUID, conversationRef string) (map[string]any, error) {
