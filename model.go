@@ -760,9 +760,10 @@ type CreateAgentRequest struct {
 	QueueWindowSeconds *int `json:"queue_window_seconds,omitempty"`
 	// TransferAgentUUIDs lists the agents this agent may transfer the conversation to.
 	TransferAgentUUIDs []string `json:"transfer_agent_uuids,omitempty"`
-	// StreamMode is the response delivery mode: "off" (default — one final
-	// message), "final" (streams internally, still one final message) or
-	// "natural" (intermediate messages committed at turn boundaries + final).
+	// StreamMode is the response delivery mode: "final" (default — one final
+	// message; internal streaming generation) or "natural" (intermediate
+	// messages committed at turn boundaries + final). The legacy "off" is no
+	// longer usable: the API normalizes "off"/"" to "final" on write.
 	StreamMode string `json:"stream_mode,omitempty"`
 }
 
@@ -809,7 +810,8 @@ type UpdateAgentRequest struct {
 	QueueWindowSeconds *int `json:"queue_window_seconds,omitempty"`
 	// TransferAgentUUIDs: nil = no change, []string{} = remove all, ["uuid1"] = replace all.
 	TransferAgentUUIDs *[]string `json:"transfer_agent_uuids,omitempty"`
-	// StreamMode: nil = no change; "" = revert to "off". Values: "off" | "final" | "natural".
+	// StreamMode: nil = no change; ""/"off" = normalized to "final" (the legacy
+	// "off" is no longer usable). Values: "final" | "natural".
 	StreamMode *string `json:"stream_mode,omitempty"`
 }
 
