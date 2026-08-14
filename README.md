@@ -620,7 +620,8 @@ fmt.Println("tokens (completion):", stats.TotalCompletionTokens)
 
 Conversa **bidirecional** em tempo real com agentes de IA na mesma conexão:
 você envia mensagens com `Send` e recebe, em canais separados, as confirmações
-de envio (`accepted`/`error`), as respostas do agente e os eventos de execução
+de envio (`accepted`/`error`), as respostas do agente, os chunks incrementais
+da resposta (streaming efêmero, sem ACK) e os eventos de execução
 das conversas da sessão. O SDK confirma automaticamente os envelopes recebidos
 (protocolo de ACK interno, igual ao monitor) e reconecta sozinho mantendo a
 mesma `Session`.
@@ -673,7 +674,7 @@ Mesma semântica do monitor (`StreamLogsOptions`):
 | Campo | Tipo | Descrição |
 |---|---|---|
 | `Session` | `string` | UUID de sessão. Reconexões com a mesma session **retomam a fila de entrega** pendente no servidor. Padrão: UUID aleatório mantido pela vida do stream |
-| `Buffer` | `int` | Capacidade dos canais (`Accepted`/`Messages`/`Events`). Padrão: `256` |
+| `Buffer` | `int` | Capacidade dos canais (`Accepted`/`Messages`/`Chunks`/`Events`). Padrão: `256` |
 | `OnConnect` | `func(session string)` | Disparado a cada handshake bem-sucedido — conexão inicial **e** cada reconexão automática |
 | `OnError` | `func(error)` | Erros de conexão/handshake. Apenas observabilidade: a reconexão é automática (backoff 1s → 30s) |
 
@@ -684,6 +685,7 @@ Mesma semântica do monitor (`StreamLogsOptions`):
 | `Send(msg ChatStreamMessage) error` | Envia mensagem ao agente. Gera UUID v4 se `msg.UUID` vazio. Thread-safe. **Sem fila no cliente**: retorna `ErrStreamNotConnected` imediatamente se desconectado — o chamador reenvia |
 | `Accepted() <-chan ChatStreamAccepted` | Confirmações de envio (`Status` = `queued`/`throttled`, ou `Error` preenchido) |
 | `Messages() <-chan ChatStreamMessage` | Respostas do agente (ACK automático). Erro terminal do job chega aqui com `Error` preenchido e `Message` vazia |
+| `Chunks() <-chan ChatStreamChunk` | Chunks incrementais da resposta (streaming). **Efêmeros, sem ACK**: a resposta definitiva continua chegando em `Messages()` — chunks após ela devem ser ignorados. `Kind` distingue `content` (texto da resposta), `reasoning` (raciocínio do modelo) e `boundary` (fecha o parcial como mensagem intermediária; o próximo `content` abre bolha nova). `Reset=true` no 1º chunk de uma nova tentativa de modelo (fallback): zere o texto e o raciocínio parciais acumulados antes de aplicar o `Delta` |
 | `Events() <-chan AgentEvent` | Eventos de execução das conversas da sessão (mesmo tipo do monitor, ACK automático) |
 | `Session() string` | UUID da sessão em uso |
 | `Close()` | Encerra o stream e fecha os canais |
@@ -701,6 +703,16 @@ Mesma semântica do monitor (`StreamLogsOptions`):
 | `Context` | `string` | (envio, opcional) contexto adicional |
 | `Attachment` | `*ChatStreamAttachment` | (opcional) anexo: `URL`, `Type` (`image`/`audio`/`document`), `MimeType`, `FileName` |
 | `Error` | `string` | (recebimento) erro terminal do job (ex.: agente não encontrado) — quando preenchido, `Message` vem vazia |
+
+### `ChatStreamChunk`
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `JobID` | `string` | Job que está gerando a resposta |
+| `ConversationUUID` | `string` | Conversa da resposta |
+| `Kind` | `string` | Tipo do chunk: `content` (trecho do texto da resposta — padrão quando omitido), `reasoning` (trecho do raciocínio do modelo, ex.: qwen — exiba separado do texto da resposta) ou `boundary` (`Delta` vazio: o parcial acumulado vira mensagem intermediária definitiva e os próximos chunks `content` abrem bolha nova — permite N mensagens do agente por turno). Constantes `ChunkKindContent`/`ChunkKindReasoning`/`ChunkKindBoundary` |
+| `Delta` | `string` | Trecho incremental do texto da resposta (ou do raciocínio, quando `Kind=reasoning`) |
+| `Reset` | `bool` | `true` no 1º chunk de uma **nova tentativa de modelo** (fallback): zere o parcial acumulado (texto **e** raciocínio) antes de continuar |
 
 ### Reconexão e confirmação de envio
 

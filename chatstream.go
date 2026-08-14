@@ -15,8 +15,9 @@ import (
 // ChatStreamCase provides access to the bidirectional chat WebSocket.
 //
 // The stream sends messages to an agent and receives, on the same connection,
-// the send confirmations (accepted/error), the agent replies and the execution
-// events of the session conversations. Delivery envelopes are acknowledged
+// the send confirmations (accepted/error), the agent replies, the incremental
+// reply chunks (ephemeral, no ACK) and the execution events of the session
+// conversations. Delivery envelopes are acknowledged
 // automatically by the SDK, and the stream reconnects keeping the same session.
 // A master (SYSTEM_ADMIN) token can chat with any agent; a tenant token can
 // chat only with its own tenant's agents.
@@ -35,7 +36,7 @@ type ChatStreamOptions struct {
 	// reconnections. Defaults to a random UUID kept for the stream lifetime.
 	Session string
 
-	// Buffer is the capacity of the accepted/messages/events channels
+	// Buffer is the capacity of the accepted/messages/chunks/events channels
 	// (default 256).
 	Buffer int
 
@@ -88,6 +89,39 @@ type ChatStreamAccepted struct {
 	Error  string `json:"error,omitempty"`
 }
 
+// ChatStreamChunk is an incremental piece of the agent reply, streamed while
+// the model is still generating. Chunks are ephemeral: they are delivered
+// without ACK and the final reply still arrives on Messages(), which is the
+// definitive content — chunks received after it must be ignored.
+//
+// Reset is true on the first chunk of a NEW model attempt (fallback): the
+// consumer must drop the accumulated partial text (and partial reasoning)
+// before applying Delta.
+type ChatStreamChunk struct {
+	JobID            string `json:"job_id,omitempty"`
+	ConversationUUID string `json:"conversation_uuid,omitempty"`
+	// Kind tells what the chunk carries (ChunkKind* constants). Chunks
+	// without an explicit kind are delivered as ChunkKindContent.
+	Kind  string `json:"kind,omitempty"`
+	Delta string `json:"delta"`
+	Reset bool   `json:"reset,omitempty"`
+}
+
+// Chunk kinds carried by ChatStreamChunk.Kind.
+const (
+	// ChunkKindContent is a piece of the visible reply text. It is also the
+	// default: chunks without an explicit kind are normalized to it.
+	ChunkKindContent = "content"
+	// ChunkKindReasoning is a piece of the model reasoning (e.g. qwen
+	// thinking), meant to be displayed apart from the reply text.
+	ChunkKindReasoning = "reasoning"
+	// ChunkKindBoundary closes the current partial reply: Delta is empty and
+	// the accumulated partial becomes a definitive intermediate message — the
+	// next content chunks open a NEW partial. This is what allows an agent to
+	// send several messages in a single turn.
+	ChunkKindBoundary = "boundary"
+)
+
 // chatSendFrame is the client → server message frame. The inner payload omits
 // the frame UUID, which lives at the envelope level.
 type chatSendFrame struct {
@@ -103,8 +137,9 @@ type chatSendFrame struct {
 }
 
 // chatFrame is the server → client frame, covering all inbound types:
-// "accepted"/"error" (send confirmations, no ACK) and the "message"/"event"
-// delivery envelopes (acknowledged automatically by the SDK).
+// "accepted"/"error" (send confirmations, no ACK), the ephemeral "chunk"
+// streaming envelopes (no ACK) and the "message"/"event" delivery envelopes
+// (acknowledged automatically by the SDK).
 type chatFrame struct {
 	Type    string             `json:"type"`
 	UUID    string             `json:"uuid"`
@@ -114,16 +149,18 @@ type chatFrame struct {
 	Error   string             `json:"error,omitempty"`
 	Message *ChatStreamMessage `json:"message,omitempty"`
 	Event   *AgentEvent        `json:"event,omitempty"`
+	Chunk   *ChatStreamChunk   `json:"chunk,omitempty"`
 }
 
 // ─── ChatStream ───────────────────────────────────────────────────────────────
 
 // ChatStream is a live bidirectional chat WebSocket. Send messages with Send
-// and consume Accepted(), Messages() and Events(); the channels are closed
-// after Close() or context cancellation.
+// and consume Accepted(), Messages(), Chunks() and Events(); the channels are
+// closed after Close() or context cancellation.
 type ChatStream struct {
 	accepted chan ChatStreamAccepted
 	messages chan ChatStreamMessage
+	chunks   chan ChatStreamChunk
 	events   chan AgentEvent
 	session  string
 	cancel   context.CancelFunc
@@ -193,6 +230,11 @@ func (s *ChatStream) Accepted() <-chan ChatStreamAccepted { return s.accepted }
 
 // Messages returns the channel where agent replies are delivered.
 func (s *ChatStream) Messages() <-chan ChatStreamMessage { return s.messages }
+
+// Chunks returns the channel where incremental reply chunks are delivered.
+// Chunks are ephemeral (no ACK, no redelivery): the definitive reply still
+// arrives on Messages().
+func (s *ChatStream) Chunks() <-chan ChatStreamChunk { return s.chunks }
 
 // Events returns the channel where execution events of the session
 // conversations are delivered (same AgentEvent as the monitor stream).
@@ -265,6 +307,7 @@ func (c *chatStreamClient) Stream(ctx context.Context, opts *ChatStreamOptions) 
 	stream := &ChatStream{
 		accepted: make(chan ChatStreamAccepted, buffer),
 		messages: make(chan ChatStreamMessage, buffer),
+		chunks:   make(chan ChatStreamChunk, buffer),
 		events:   make(chan AgentEvent, buffer),
 		session:  session,
 		cancel:   cancel,
@@ -280,6 +323,7 @@ func (c *chatStreamClient) Stream(ctx context.Context, opts *ChatStreamOptions) 
 func (c *chatStreamClient) run(ctx context.Context, stream *ChatStream, wsURL string, onConnect func(string), onError func(error)) {
 	defer close(stream.accepted)
 	defer close(stream.messages)
+	defer close(stream.chunks)
 	defer close(stream.events)
 
 	report := func(err error) {
@@ -325,8 +369,9 @@ func (c *chatStreamClient) run(ctx context.Context, stream *ChatStream, wsURL st
 }
 
 // consume reads frames until the connection drops: send confirmations are
-// delivered to Accepted() (no ACK), while message/event envelopes are
-// acknowledged and delivered to Messages()/Events().
+// delivered to Accepted() and streaming chunks to Chunks() (both without
+// ACK), while message/event envelopes are acknowledged and delivered to
+// Messages()/Events().
 func (c *chatStreamClient) consume(ctx context.Context, conn *websocket.Conn, stream *ChatStream) error {
 	prepareWSConn(conn)
 
@@ -365,6 +410,22 @@ func (c *chatStreamClient) consume(ctx context.Context, conn *websocket.Conn, st
 			}
 			select {
 			case stream.accepted <- confirmation:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		case "chunk":
+			if frame.Chunk == nil {
+				continue
+			}
+			// Chunk de streaming: efêmero, sem ACK — a resposta definitiva
+			// continua chegando como "message". Kind vazio normaliza para
+			// "content" (compatibilidade com servidores antigos).
+			chunk := *frame.Chunk
+			if chunk.Kind == "" {
+				chunk.Kind = ChunkKindContent
+			}
+			select {
+			case stream.chunks <- chunk:
 			case <-ctx.Done():
 				return ctx.Err()
 			}
