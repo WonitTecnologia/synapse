@@ -75,6 +75,16 @@ type ChatStreamMessage struct {
 	Context          string                `json:"context,omitempty"`
 	Attachment       *ChatStreamAttachment `json:"attachment,omitempty"`
 
+	// Title is the AI-generated conversation title, present on the inbound
+	// reply of the turn in which it was generated. Today only system/builder
+	// agents (e.g. the Builder Agent) produce it.
+	Title string `json:"title,omitempty"`
+
+	// Suggestions holds AI-generated suggestions for the user's next message,
+	// present on the inbound reply of the turn in which they were generated.
+	// Today only system/builder agents (e.g. the Builder Agent) produce them.
+	Suggestions []string `json:"suggestions,omitempty"`
+
 	// Error is set when the job failed with a terminal error (e.g. agent not
 	// found); in that case Message is empty.
 	Error string `json:"error,omitempty"`

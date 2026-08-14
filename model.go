@@ -1073,6 +1073,21 @@ type ChatResponse struct {
 	Transfer *AgentTransferInfo `json:"transfer,omitempty"`
 }
 
+// ConversationFocus describes what a system/builder agent is currently doing
+// in the conversation. Today only system/builder agents (e.g. the Builder
+// Agent) produce this field — regular agents leave it nil.
+type ConversationFocus struct {
+	// Action is the ongoing activity: "analisando" | "criando" | "modificando".
+	Action string `json:"action"`
+	// AgentName is the name of the agent currently working on the conversation.
+	AgentName string `json:"agent_name"`
+	// TargetAgentUUID is the UUID of the agent being created/modified, when
+	// applicable.
+	TargetAgentUUID string `json:"target_agent_uuid,omitempty"`
+	// UpdatedAt is when the focus was last updated.
+	UpdatedAt string `json:"updated_at,omitempty"`
+}
+
 // ConversationResponse is a summary of a stored conversation (without full message content).
 type ConversationResponse struct {
 	UUID       string `json:"uuid"`
@@ -1082,6 +1097,13 @@ type ConversationResponse struct {
 	// conversation was started by passing an arbitrary identifier in ConversationUUID
 	// instead of a UUID. Nil for conversations created/continued by UUID.
 	ExternalID *string `json:"external_id,omitempty"`
+	// Title is the AI-generated title of the conversation. Today only
+	// system/builder agents (e.g. the Builder Agent) produce it; empty for
+	// regular agents.
+	Title string `json:"title,omitempty"`
+	// Focus describes what a system/builder agent is currently doing in the
+	// conversation. Nil unless a system/builder agent is at work.
+	Focus *ConversationFocus `json:"focus,omitempty"`
 	// MessageCount is the total number of messages (user + assistant turns).
 	MessageCount int    `json:"message_count"`
 	CreatedAt    string `json:"created_at"`

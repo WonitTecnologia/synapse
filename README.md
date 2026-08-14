@@ -364,6 +364,18 @@ resp, err := client.Chatvolt.Query(ctx, synapse.ChatvoltAgentQueryRequest{
 
 ## Agent
 
+### Listar conversas
+
+`client.Agent.ListConversations` retorna a lista paginada de conversas
+(`ConversationResponse`): `UUID`, `TenantUUID`, `AgentUUID`, `ExternalID`,
+`MessageCount`, `CreatedAt`, `UpdatedAt` — e, em conversas atendidas por
+agentes de sistema/construtor (ex.: Builder Agent):
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `Title` | `string` | Título da conversa gerado por IA (vazio para agentes comuns) |
+| `Focus` | `*ConversationFocus` | O que o agente de sistema está fazendo na conversa agora (`nil` para agentes comuns): `Action` (`analisando`/`criando`/`modificando`), `AgentName`, `TargetAgentUUID` (agente sendo criado/modificado, quando aplicável) e `UpdatedAt` |
+
 ### Transferência entre agentes de IA
 
 Um agente pode transferir o atendimento para outro agente de IA do mesmo tenant.
@@ -702,6 +714,8 @@ Mesma semântica do monitor (`StreamLogsOptions`):
 | `Message` | `string` | Texto da mensagem |
 | `Context` | `string` | (envio, opcional) contexto adicional |
 | `Attachment` | `*ChatStreamAttachment` | (opcional) anexo: `URL`, `Type` (`image`/`audio`/`document`), `MimeType`, `FileName` |
+| `Title` | `string` | (recebimento) título da conversa gerado por IA — presente no turno em que foi gerado. Hoje só agentes de sistema/construtor (ex.: Builder Agent) produzem |
+| `Suggestions` | `[]string` | (recebimento) sugestões geradas por IA para a próxima mensagem do usuário — presentes no turno em que foram geradas. Hoje só agentes de sistema/construtor (ex.: Builder Agent) produzem |
 | `Error` | `string` | (recebimento) erro terminal do job (ex.: agente não encontrado) — quando preenchido, `Message` vem vazia |
 
 ### `ChatStreamChunk`
