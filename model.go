@@ -760,6 +760,10 @@ type CreateAgentRequest struct {
 	QueueWindowSeconds *int `json:"queue_window_seconds,omitempty"`
 	// TransferAgentUUIDs lists the agents this agent may transfer the conversation to.
 	TransferAgentUUIDs []string `json:"transfer_agent_uuids,omitempty"`
+	// StreamMode is the response delivery mode: "off" (default — one final
+	// message), "final" (streams internally, still one final message) or
+	// "natural" (intermediate messages committed at turn boundaries + final).
+	StreamMode string `json:"stream_mode,omitempty"`
 }
 
 // UpdateAgentRequest is used for both full (PUT) and partial (PATCH) agent updates.
@@ -805,6 +809,8 @@ type UpdateAgentRequest struct {
 	QueueWindowSeconds *int `json:"queue_window_seconds,omitempty"`
 	// TransferAgentUUIDs: nil = no change, []string{} = remove all, ["uuid1"] = replace all.
 	TransferAgentUUIDs *[]string `json:"transfer_agent_uuids,omitempty"`
+	// StreamMode: nil = no change; "" = revert to "off". Values: "off" | "final" | "natural".
+	StreamMode *string `json:"stream_mode,omitempty"`
 }
 
 // DuplicateAgentRequest is the payload for AgentCase.Duplicate — only the name
@@ -847,6 +853,8 @@ type AgentResponse struct {
 	QueueEnabled        bool     `json:"queue_enabled"`
 	QueueWindowSeconds  int      `json:"queue_window_seconds"`
 	TransferAgentUUIDs  []string `json:"transfer_agent_uuids"`
+	// StreamMode: "off" | "final" | "natural" (see CreateAgentRequest).
+	StreamMode          string   `json:"stream_mode"`
 	CreatedAt           string   `json:"created_at"`
 	UpdatedAt           string   `json:"updated_at"`
 }
