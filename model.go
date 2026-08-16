@@ -584,6 +584,7 @@ type CollectionsResponse struct {
 	Collections []CollectionResponse `json:"collections"`
 	Page        int                  `json:"page"`
 	Size        int                  `json:"size"`
+	Total       int64                `json:"total"`
 }
 
 // ─── Knowledge – Document Estimate ─────────────────────────────────────────────
