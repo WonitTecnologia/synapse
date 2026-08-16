@@ -1071,6 +1071,14 @@ type ChatResponse struct {
 	Closed bool `json:"closed,omitempty"`
 	// Transfer is set when the turn transferred the conversation to another AI agent.
 	Transfer *AgentTransferInfo `json:"transfer,omitempty"`
+	// Title is the AI-generated conversation title, present on the reply of the
+	// turn in which it was generated. Today only system/builder agents (e.g. the
+	// Builder Agent) produce it.
+	Title string `json:"title,omitempty"`
+	// Suggestions holds AI-generated suggestions for the user's next message,
+	// present on the reply of the turn in which they were generated. Today only
+	// system/builder agents (e.g. the Builder Agent) produce them.
+	Suggestions []string `json:"suggestions,omitempty"`
 }
 
 // ConversationFocus describes what a system/builder agent is currently doing

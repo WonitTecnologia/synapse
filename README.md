@@ -429,6 +429,12 @@ internos — como o construtor de agentes. O chat roda num pipeline dedicado
 (sem juiz, tools `sistema_*`) e a cobrança cai sempre na chave OpenRouter do
 tenant chamador.
 
+No chat com agentes de sistema, o `ChatResponse` pode trazer dois campos extras
+gerados por IA no turno: `Title` (título da conversa, presente no turno em que
+foi gerado) e `Suggestions` (sugestões de próxima mensagem do usuário). Agentes
+comuns nunca preenchem esses campos. No transporte WebSocket eles chegam no
+`ChatStreamMessage` recebido (ver [WebSocket de chat](#websocket-de-chat-chatstream)).
+
 ### Cancelar job de chat
 
 No transporte WebSocket o chat responde `202` com um `job_id` e a resposta chega
