@@ -362,6 +362,33 @@ resp, err := client.Chatvolt.Query(ctx, synapse.ChatvoltAgentQueryRequest{
 
 ---
 
+## OpenRouter
+
+### Gasto mensal de um agente de sistema por tenant
+
+Cada tipo de agente de sistema (ex.: construtor de agentes) usa uma chave
+OpenRouter própria por tenant — provisionada automaticamente no primeiro chat —
+isolando o gasto do agente do gasto geral do tenant.
+`GetAgentMonthlyAnalytics` expõe esse gasto agregado por tenant (custo em USD,
+tokens e requests do mês), ordenado por custo desc, com os totais gerais.
+
+TENANT_ADMIN vê apenas o próprio tenant. SYSTEM_ADMIN pode informar
+`TenantUUID` (drill-down) ou omiti-lo para o rollup de todos os tenants com
+chave ativa daquele agente.
+
+```go
+resp, err := client.OpenRouter.GetAgentMonthlyAnalytics(ctx, synapse.OpenRouterAgentMonthlyParams{
+    AgentUUID: "uuid-do-agente-de-sistema",
+    Month:     "2026-08", // opcional; vazio = mês corrente
+    // TenantUUID: "uuid-do-tenant", // opcional (SYSTEM_ADMIN); vazio = rollup
+})
+for _, item := range resp.Items {
+    fmt.Println(item.TenantName, item.TotalUsage, item.TokensTotal, item.Requests)
+}
+```
+
+---
+
 ## Agent
 
 ### Listar conversas
@@ -426,8 +453,10 @@ if chat.Transfer != nil {
 
 Agentes de sistema são agentes da plataforma (sem tenant dono) usados em fluxos
 internos — como o construtor de agentes. O chat roda num pipeline dedicado
-(sem juiz, tools `sistema_*`) e a cobrança cai sempre na chave OpenRouter do
-tenant chamador.
+(sem juiz, tools `sistema_*`) e a cobrança cai na chave OpenRouter própria do
+tipo de agente dentro do workspace do tenant chamador (provisionada
+automaticamente no primeiro chat), isolada do gasto geral do tenant — ver
+[Gasto mensal de um agente de sistema por tenant](#gasto-mensal-de-um-agente-de-sistema-por-tenant).
 
 No chat com agentes de sistema, o `ChatResponse` pode trazer dois campos extras
 gerados por IA no turno: `Title` (título da conversa, presente no turno em que

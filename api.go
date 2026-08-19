@@ -85,6 +85,7 @@ const (
 	pathOpenRouterEmbeddingModels     = "/api/catalog/application/openrouter/models/embedding"
 	pathOpenRouterAnalyticsMonthly    = "/api/catalog/application/openrouter/analytics/monthly"
 	pathOpenRouterAnalyticsMonthlyAll = "/api/catalog/application/openrouter/analytics/monthly/all"
+	pathOpenRouterAnalyticsAgent      = "/api/catalog/application/openrouter/analytics/monthly/agent"
 	pathOpenRouterAnalyticsQuery      = "/api/catalog/application/openrouter/analytics/query"
 	pathOpenRouterAnalyticsMeta       = "/api/catalog/application/openrouter/analytics/meta"
 )

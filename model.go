@@ -518,6 +518,33 @@ type OpenRouterAllTenantsMonthlyResponse struct {
 	TenantCount int                            `json:"tenant_count"`
 }
 
+// OpenRouterAgentMonthlySpend is one tenant's monthly OpenRouter spend for a
+// system agent type, measured on the agent's own API key in that tenant.
+type OpenRouterAgentMonthlySpend struct {
+	TenantUUID  string  `json:"tenant_uuid"`
+	TenantName  string  `json:"tenant_name"`
+	AgentUUID   string  `json:"agent_uuid"`
+	WorkspaceID string  `json:"workspace_id"`
+	KeyHash     string  `json:"key_hash"`
+	TotalUsage  float64 `json:"total_usage"`
+	TokensTotal int64   `json:"tokens_total"`
+	Requests    int64   `json:"requests"`
+}
+
+// OpenRouterAgentMonthlyResponse is the monthly OpenRouter spend of one system
+// agent type aggregated per tenant (sorted by cost descending) plus the month
+// totals. Without TenantUUID (SYSTEM_ADMIN), it is the rollup across all tenants
+// with an active key for the agent.
+type OpenRouterAgentMonthlyResponse struct {
+	Month       string                        `json:"month"`
+	AgentUUID   string                        `json:"agent_uuid"`
+	Items       []OpenRouterAgentMonthlySpend `json:"items"`
+	TotalUsage  float64                       `json:"total_usage"`
+	TokensTotal int64                         `json:"tokens_total"`
+	Requests    int64                         `json:"requests"`
+	TenantCount int                           `json:"tenant_count"`
+}
+
 // OpenRouterAnalyticsMetricInfo describes a metric available for analytics queries.
 type OpenRouterAnalyticsMetricInfo struct {
 	Name          string `json:"name"`
@@ -857,9 +884,9 @@ type AgentResponse struct {
 	QueueWindowSeconds  int      `json:"queue_window_seconds"`
 	TransferAgentUUIDs  []string `json:"transfer_agent_uuids"`
 	// StreamMode: "off" | "final" | "natural" (see CreateAgentRequest).
-	StreamMode          string   `json:"stream_mode"`
-	CreatedAt           string   `json:"created_at"`
-	UpdatedAt           string   `json:"updated_at"`
+	StreamMode string `json:"stream_mode"`
+	CreatedAt  string `json:"created_at"`
+	UpdatedAt  string `json:"updated_at"`
 }
 
 // ListAgentsResponse is the paginated list of agents for a tenant.

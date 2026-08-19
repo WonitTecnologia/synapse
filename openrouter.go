@@ -39,6 +39,14 @@ type OpenRouterCase interface {
 	// with the master key.
 	GetAllTenantsMonthlyAnalytics(ctx context.Context, params OpenRouterAllTenantsMonthlyParams) (*OpenRouterAllTenantsMonthlyResponse, error)
 
+	// GetAgentMonthlyAnalytics returns the monthly OpenRouter spend (USD), tokens
+	// and requests of one system agent type (params.AgentUUID), aggregated per
+	// tenant on the agent's own API keys, sorted by cost descending, plus the
+	// month totals. TENANT_ADMIN sees only the caller's tenant; SYSTEM_ADMIN may
+	// set params.TenantUUID (drill-down) or leave it empty for the rollup across
+	// all tenants with an active key for that agent.
+	GetAgentMonthlyAnalytics(ctx context.Context, params OpenRouterAgentMonthlyParams) (*OpenRouterAgentMonthlyResponse, error)
+
 	// QueryAnalytics runs an analytics query scoped to the tenant's workspace.
 	// The workspace filter is applied server-side and must not be present in
 	// req.Filters. Metrics/dimensions outside the daily materialized view (only
@@ -66,6 +74,18 @@ type OpenRouterMonthlyAnalyticsParams struct {
 type OpenRouterAllTenantsMonthlyParams struct {
 	// Month in "YYYY-MM" format. Empty = current month.
 	Month string
+}
+
+// OpenRouterAgentMonthlyParams are the parameters for GetAgentMonthlyAnalytics.
+type OpenRouterAgentMonthlyParams struct {
+	// AgentUUID identifies the system agent type whose spend is being queried. Required.
+	AgentUUID string
+	// Month in "YYYY-MM" format. Empty = current month.
+	Month string
+	// TenantUUID targets a single tenant. SYSTEM_ADMIN only; empty = rollup
+	// across all tenants with an active key for this agent. Ignored for
+	// TENANT_ADMIN (always the caller's own tenant).
+	TenantUUID string
 }
 
 // ─── Implementation ───────────────────────────────────────────────────────────
@@ -144,6 +164,22 @@ func (o *openrouterClient) GetAllTenantsMonthlyAnalytics(ctx context.Context, pa
 	var out OpenRouterAllTenantsMonthlyResponse
 	if err := o.http.get(ctx, pathOpenRouterAnalyticsMonthlyAll, q, &out); err != nil {
 		return nil, fmt.Errorf("synapse/openrouter.GetAllTenantsMonthlyAnalytics: %w", err)
+	}
+	return &out, nil
+}
+
+func (o *openrouterClient) GetAgentMonthlyAnalytics(ctx context.Context, params OpenRouterAgentMonthlyParams) (*OpenRouterAgentMonthlyResponse, error) {
+	q := url.Values{}
+	q.Set("agent_uuid", params.AgentUUID)
+	if params.Month != "" {
+		q.Set("month", params.Month)
+	}
+	if params.TenantUUID != "" {
+		q.Set("tenant_uuid", params.TenantUUID)
+	}
+	var out OpenRouterAgentMonthlyResponse
+	if err := o.http.get(ctx, pathOpenRouterAnalyticsAgent, q, &out); err != nil {
+		return nil, fmt.Errorf("synapse/openrouter.GetAgentMonthlyAnalytics: %w", err)
 	}
 	return &out, nil
 }
