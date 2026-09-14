@@ -115,6 +115,12 @@ type ChatStreamChunk struct {
 	Kind  string `json:"kind,omitempty"`
 	Delta string `json:"delta"`
 	Reset bool   `json:"reset,omitempty"`
+	// Seq is the per-job chunk sequence number: it starts at 1 and is
+	// monotonically increasing across all chunk kinds (content, reasoning,
+	// boundary and reset). Consumers can drop duplicate deliveries by
+	// discarding any chunk whose Seq is <= the last Seq seen for the job,
+	// resetting the tracker whenever a Reset chunk arrives.
+	Seq uint64 `json:"seq,omitempty"`
 }
 
 // Chunk kinds carried by ChatStreamChunk.Kind.

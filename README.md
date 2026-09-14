@@ -732,7 +732,7 @@ Mesma semântica do monitor (`StreamLogsOptions`):
 | `Send(msg ChatStreamMessage) error` | Envia mensagem ao agente. Gera UUID v4 se `msg.UUID` vazio. Thread-safe. **Sem fila no cliente**: retorna `ErrStreamNotConnected` imediatamente se desconectado — o chamador reenvia |
 | `Accepted() <-chan ChatStreamAccepted` | Confirmações de envio (`Status` = `queued`/`throttled`, ou `Error` preenchido) |
 | `Messages() <-chan ChatStreamMessage` | Respostas do agente (ACK automático). Erro terminal do job chega aqui com `Error` preenchido e `Message` vazia |
-| `Chunks() <-chan ChatStreamChunk` | Chunks incrementais da resposta (streaming). **Efêmeros, sem ACK**: a resposta definitiva continua chegando em `Messages()` — chunks após ela devem ser ignorados. `Kind` distingue `content` (texto da resposta), `reasoning` (raciocínio do modelo) e `boundary` (fecha o parcial como mensagem intermediária; o próximo `content` abre bolha nova). `Reset=true` no 1º chunk de uma nova tentativa de modelo (fallback): zere o texto e o raciocínio parciais acumulados antes de aplicar o `Delta` |
+| `Chunks() <-chan ChatStreamChunk` | Chunks incrementais da resposta (streaming). **Efêmeros, sem ACK**: a resposta definitiva continua chegando em `Messages()` — chunks após ela devem ser ignorados. `Kind` distingue `content` (texto da resposta), `reasoning` (raciocínio do modelo) e `boundary` (fecha o parcial como mensagem intermediária; o próximo `content` abre bolha nova). `Reset=true` no 1º chunk de uma nova tentativa de modelo (fallback): zere o texto e o raciocínio parciais acumulados antes de aplicar o `Delta`. Chunks podem chegar **duplicados** (ex.: redispatch do job) — deduplique pelo `Seq` (ver tabela `ChatStreamChunk`) |
 | `Events() <-chan AgentEvent` | Eventos de execução das conversas da sessão (mesmo tipo do monitor, ACK automático) |
 | `Session() string` | UUID da sessão em uso |
 | `Close()` | Encerra o stream e fecha os canais |
@@ -762,6 +762,7 @@ Mesma semântica do monitor (`StreamLogsOptions`):
 | `Kind` | `string` | Tipo do chunk: `content` (trecho do texto da resposta — padrão quando omitido), `reasoning` (trecho do raciocínio do modelo, ex.: qwen — exiba separado do texto da resposta) ou `boundary` (`Delta` vazio: o parcial acumulado vira mensagem intermediária definitiva e os próximos chunks `content` abrem bolha nova — permite N mensagens do agente por turno). Constantes `ChunkKindContent`/`ChunkKindReasoning`/`ChunkKindBoundary` |
 | `Delta` | `string` | Trecho incremental do texto da resposta (ou do raciocínio, quando `Kind=reasoning`) |
 | `Reset` | `bool` | `true` no 1º chunk de uma **nova tentativa de modelo** (fallback): zere o parcial acumulado (texto **e** raciocínio) antes de continuar |
+| `Seq` | `uint64` | Número de sequência do chunk **por job**: começa em 1 e cresce monotonicamente em todos os kinds (`content`, `reasoning`, `boundary` e no chunk de `Reset`). Serve para **deduplicar** chunks entregues em duplicata: descarte o chunk cujo `Seq` seja menor ou igual ao último `Seq` visto no turno e, ao receber `Reset=true`, zere esse controle |
 
 ### Reconexão e confirmação de envio
 
