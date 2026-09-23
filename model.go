@@ -1398,12 +1398,18 @@ type McpToolsListResponse struct {
 // ExternalApiParamDef describes one input the AI fills when calling an external API
 // tool. It becomes a property of the tool's JSON Schema and is interpolated as
 // {{name}} into the URL/headers/body according to Location.
+//
+// A param with Type "file" is exposed to the LLM as a plain string (a file URL)
+// in the function-calling schema; the executor downloads that URL and attaches
+// it as binary in the multipart body (data:...;base64,... values are also
+// accepted). Location "form" marks a text field of a multipart/form_urlencoded
+// body and Location "file" marks its file field.
 type ExternalApiParamDef struct {
 	Name        string   `json:"name"`
-	Type        string   `json:"type"` // string|number|integer|boolean|array|object
+	Type        string   `json:"type"` // string|number|integer|boolean|array|object|file
 	Description string   `json:"description"`
 	Required    bool     `json:"required"`
-	Location    string   `json:"location"` // query|path|header|body
+	Location    string   `json:"location"` // query|path|header|body|form|file
 	Enum        []string `json:"enum,omitempty"`
 }
 
@@ -1423,8 +1429,11 @@ type CreateExternalApiRequest struct {
 	// Headers values may contain {{param}} placeholders. May carry secrets.
 	Headers map[string]string `json:"headers,omitempty"`
 	// BodyTemplate is a JSON body with {{param}} placeholders (POST/PUT/PATCH).
-	BodyTemplate string                `json:"body_template,omitempty"`
-	Parameters   []ExternalApiParamDef `json:"parameters,omitempty"`
+	BodyTemplate string `json:"body_template,omitempty"`
+	// BodyType selects how the executor builds the request body:
+	// none|json|multipart|form_urlencoded|raw. Empty = json (backwards compatible).
+	BodyType   string                `json:"body_type,omitempty"`
+	Parameters []ExternalApiParamDef `json:"parameters,omitempty"`
 	// EmbedModel condenses large responses via ephemeral RAG. Empty = no condensing.
 	EmbedModel string `json:"embed_model,omitempty"`
 	// EmbedThreshold is the char count above which the response is condensed (0 = default 8000).
@@ -1441,6 +1450,7 @@ type UpdateExternalApiRequest struct {
 	URL            *string                `json:"url,omitempty"`
 	Headers        *map[string]string     `json:"headers,omitempty"`
 	BodyTemplate   *string                `json:"body_template,omitempty"`
+	BodyType       *string                `json:"body_type,omitempty"`
 	Parameters     *[]ExternalApiParamDef `json:"parameters,omitempty"`
 	EmbedModel     *string                `json:"embed_model,omitempty"`
 	EmbedThreshold *int                   `json:"embed_threshold,omitempty"`
@@ -1459,6 +1469,8 @@ type ExternalApiResponse struct {
 	URL            string                `json:"url"`
 	Headers        map[string]string     `json:"headers"`
 	BodyTemplate   string                `json:"body_template"`
+	// BodyType is the request body mode: none|json|multipart|form_urlencoded|raw.
+	BodyType       string                `json:"body_type"`
 	Parameters     []ExternalApiParamDef `json:"parameters"`
 	EmbedModel     string                `json:"embed_model"`
 	EmbedThreshold int                   `json:"embed_threshold"`
