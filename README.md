@@ -500,9 +500,12 @@ monta o corpo da requisição: `none` | `json` | `multipart` | `form_urlencoded`
 |---|---|
 | `json` (default) | `BodyTemplate` interpolado, enviado com `Content-Type: application/json` |
 | `raw` | `BodyTemplate` interpolado enviado como string crua; o `Content-Type` vem dos headers configurados (não é forçado json) |
-| `multipart` | Corpo `multipart/form-data`: parâmetros com `Location: "form"` viram campos texto; parâmetros com `Location: "file"` / `Type: "file"` viram campos arquivo |
-| `form_urlencoded` | Parâmetros com `Location: "form"` viram corpo `application/x-www-form-urlencoded` |
+| `multipart` | Corpo `multipart/form-data` **combinável**: parâmetros com `Location: "form"` viram campos texto (com `Type: "object"`/`"array"` são serializados como JSON no campo — ex.: `metadata={"a":1}`); parâmetros com `Location: "file"` / `Type: "file"` viram campos arquivo |
+| `form_urlencoded` | Parâmetros com `Location: "form"` viram corpo `application/x-www-form-urlencoded` (`object`/`array` também viram JSON no valor) |
 | `none` | Sem corpo |
+
+Parâmetros `query`, `path` e `header` combinam livremente com qualquer
+`body_type` — o tipo de corpo só define como o **corpo** é montado.
 
 ### Parâmetros de arquivo (`type: "file"`)
 
