@@ -412,9 +412,30 @@ if resp.Tiers.Flex != nil {
 | `CompletionPrice` | `string` | Preço do token de completion em USD (string crua do OpenRouter) |
 | `Providers` | `[]string` | Provedores que atendem o tier (ex.: `openai/fast`) |
 
+### Parâmetros suportados por modelo
+
+Cada `OpenRouterModelInfo` devolvido por `ListModels` traz o campo
+`SupportedParameters` (`supported_parameters`): a lista de parâmetros que o
+modelo aceita nas chamadas (ex.: `temperature`, `top_p`, `max_tokens`,
+`tools`). É a fonte que o servidor usa para calcular o `temperature_enabled`
+do agente — um modelo sem `temperature` na lista faz a temperature
+configurada ser ignorada nas chamadas (ver
+[`temperature_enabled`](#temperature_enabled-somente-leitura)).
+
 ---
 
 ## Agent
+
+### `temperature_enabled` (somente leitura)
+
+O `AgentResponse` traz o campo `TemperatureEnabled` (`temperature_enabled`),
+gerenciado pelo sistema e calculado do catálogo OpenRouter: `true` por
+padrão; `false` quando o modelo configurado no agente não aceita o parâmetro
+`temperature` — nesse caso a temperature configurada **não é enviada** nas
+chamadas ao modelo. Vale para agentes comuns e de sistema. Requests de
+create/update não enviam o campo (o backend o ignora/recalcula); para saber
+de antemão se um modelo aceita temperature, consulte `SupportedParameters`
+em [`OpenRouter.ListModels`](#parâmetros-suportados-por-modelo).
 
 ### Listar conversas
 
