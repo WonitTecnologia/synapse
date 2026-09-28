@@ -438,6 +438,28 @@ type OpenRouterListEmbeddingModelsResponse struct {
 	Total  int                        `json:"total"`
 }
 
+// OpenRouterModelTierInfo describes one service tier of a model: raw OpenRouter
+// per-token prices (USD, as strings) and the providers serving that tier.
+type OpenRouterModelTierInfo struct {
+	PromptPrice     string   `json:"prompt_price"`
+	CompletionPrice string   `json:"completion_price"`
+	Providers       []string `json:"providers"`
+}
+
+// OpenRouterModelTiers holds the service tiers available for a model; each
+// field is nil when the model does not offer that tier.
+type OpenRouterModelTiers struct {
+	Priority *OpenRouterModelTierInfo `json:"priority"`
+	Flex     *OpenRouterModelTierInfo `json:"flex"`
+}
+
+// OpenRouterListModelTiersResponse is returned by ListModelTiers: the model ID
+// and its available service tiers.
+type OpenRouterListModelTiersResponse struct {
+	Model string               `json:"model"`
+	Tiers OpenRouterModelTiers `json:"tiers"`
+}
+
 // OpenRouterAnalyticsFilter is an additional filter for an analytics query.
 // The "workspace" field is rejected by the server — it is applied automatically
 // from the authenticated tenant.

@@ -72,7 +72,7 @@ client, err := synapse.NewClient("seu-token", &synapse.Options{
 | `client.Google`      | `GoogleCase`      | Integração Google Vision AI (OCR)                |
 | `client.OpenAI`      | `OpenAICase`      | Chat, análise de imagem, transcrição de áudio    |
 | `client.Chatvolt`    | `ChatvoltCase`    | Query a agentes Chatvolt                         |
-| `client.OpenRouter`  | `OpenRouterCase`  | Workspace OpenRouter (sync, modelos, analytics)  |
+| `client.OpenRouter`  | `OpenRouterCase`  | Workspace OpenRouter (sync, modelos, service tiers, analytics) |
 | `client.Collection`  | `CollectionCase`  | Coleções vetoriais (Qdrant) da base de conhecimento |
 | `client.Document`    | `DocumentCase`    | Upload e vetorização de documentos               |
 | `client.Agent`       | `AgentCase`       | CRUD de agentes de IA + chat (com RAG)           |
@@ -386,6 +386,31 @@ for _, item := range resp.Items {
     fmt.Println(item.TenantName, item.TotalUsage, item.TokensTotal, item.Requests)
 }
 ```
+
+### Service tiers de um modelo
+
+`ListModelTiers` retorna os service tiers (`priority`, `flex`) disponíveis para
+um modelo do OpenRouter, com os preços crus por token (USD, strings exatamente
+como o OpenRouter devolve) e os provedores que atendem cada tier. Um tier `nil`
+significa que o modelo não o oferece.
+
+```go
+resp, err := client.OpenRouter.ListModelTiers(ctx, "openai/gpt-5.2")
+if resp.Tiers.Priority != nil {
+    fmt.Println(resp.Tiers.Priority.PromptPrice, resp.Tiers.Priority.CompletionPrice)
+    fmt.Println(resp.Tiers.Priority.Providers)
+}
+if resp.Tiers.Flex != nil {
+    fmt.Println(resp.Tiers.Flex.PromptPrice, resp.Tiers.Flex.CompletionPrice)
+    fmt.Println(resp.Tiers.Flex.Providers)
+}
+```
+
+| Campo (`OpenRouterModelTierInfo`) | Tipo | Descrição |
+|---|---|---|
+| `PromptPrice` | `string` | Preço do token de prompt em USD (string crua do OpenRouter) |
+| `CompletionPrice` | `string` | Preço do token de completion em USD (string crua do OpenRouter) |
+| `Providers` | `[]string` | Provedores que atendem o tier (ex.: `openai/fast`) |
 
 ---
 

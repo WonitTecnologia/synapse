@@ -82,6 +82,7 @@ const (
 const (
 	pathOpenRouterSincronismo         = "/api/catalog/application/openrouter/sincronismo"
 	pathOpenRouterModels              = "/api/catalog/application/openrouter/models"
+	pathOpenRouterModelsEndpoints     = "/api/catalog/application/openrouter/models/endpoints"
 	pathOpenRouterEmbeddingModels     = "/api/catalog/application/openrouter/models/embedding"
 	pathOpenRouterAnalyticsMonthly    = "/api/catalog/application/openrouter/analytics/monthly"
 	pathOpenRouterAnalyticsMonthlyAll = "/api/catalog/application/openrouter/analytics/monthly/all"

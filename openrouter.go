@@ -23,6 +23,11 @@ type OpenRouterCase interface {
 	// Set freeOnly=true to filter for free-tier models only.
 	ListModels(ctx context.Context, freeOnly bool) (*OpenRouterListModelsResponse, error)
 
+	// ListModelTiers returns the service tiers (priority, flex) available for a
+	// model, with per-tier raw OpenRouter prices (USD per token, as strings) and
+	// providers. A nil tier means the model does not offer it.
+	ListModelTiers(ctx context.Context, model string) (*OpenRouterListModelTiersResponse, error)
+
 	// ListEmbeddingModels fetches live embedding models from the OpenRouter API,
 	// filtered by output modality. Each entry includes vector_size (0 = unknown) and
 	// context_length so callers can configure Qdrant collections and chunk sizes correctly.
@@ -122,6 +127,16 @@ func (o *openrouterClient) ListModels(ctx context.Context, freeOnly bool) (*Open
 	var out OpenRouterListModelsResponse
 	if err := o.http.get(ctx, pathOpenRouterModels, q, &out); err != nil {
 		return nil, fmt.Errorf("synapse/openrouter.ListModels: %w", err)
+	}
+	return &out, nil
+}
+
+func (o *openrouterClient) ListModelTiers(ctx context.Context, model string) (*OpenRouterListModelTiersResponse, error) {
+	q := url.Values{}
+	q.Set("model", model)
+	var out OpenRouterListModelTiersResponse
+	if err := o.http.get(ctx, pathOpenRouterModelsEndpoints, q, &out); err != nil {
+		return nil, fmt.Errorf("synapse/openrouter.ListModelTiers: %w", err)
 	}
 	return &out, nil
 }
