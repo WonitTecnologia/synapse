@@ -873,17 +873,21 @@ type DuplicateAgentRequest struct {
 
 // AgentResponse describes an AI agent.
 type AgentResponse struct {
-	UUID                string   `json:"uuid"`
-	TenantUUID          string   `json:"tenant_uuid"`
-	IsSystem            bool     `json:"is_system"`
-	Name                string   `json:"name"`
-	Description         string   `json:"description"`
-	Model               string   `json:"model"`
-	Prompt              string   `json:"prompt"`
-	CollectionUUIDs     []string `json:"collection_uuids"`
-	QueryEmbedModel     string   `json:"query_embed_model,omitempty"`
-	MaxContext          int      `json:"max_context"`
-	Temperature         float64  `json:"temperature"`
+	UUID            string   `json:"uuid"`
+	TenantUUID      string   `json:"tenant_uuid"`
+	IsSystem        bool     `json:"is_system"`
+	Name            string   `json:"name"`
+	Description     string   `json:"description"`
+	Model           string   `json:"model"`
+	Prompt          string   `json:"prompt"`
+	CollectionUUIDs []string `json:"collection_uuids"`
+	QueryEmbedModel string   `json:"query_embed_model,omitempty"`
+	MaxContext      int      `json:"max_context"`
+	Temperature     float64  `json:"temperature"`
+	// TemperatureEnabled is read-only and computed server-side from the OpenRouter
+	// catalog: false when the configured model does not accept temperature (the
+	// configured value is then not sent in model calls). Ignored on create/update.
+	TemperatureEnabled  bool     `json:"temperature_enabled"`
 	Active              bool     `json:"active"`
 	McpEnabled          bool     `json:"mcp_enabled"`
 	McpIntegrationUUIDs []string `json:"mcp_integration_uuids"`
@@ -1482,15 +1486,15 @@ type UpdateExternalApiRequest struct {
 
 // ExternalApiResponse describes a registered external API tool.
 type ExternalApiResponse struct {
-	UUID           string                `json:"uuid"`
-	TenantUUID     string                `json:"tenant_uuid"`
-	Name           string                `json:"name"`
-	Description    string                `json:"description"`
-	UsagePrompt    string                `json:"usage_prompt"`
-	Method         string                `json:"method"`
-	URL            string                `json:"url"`
-	Headers        map[string]string     `json:"headers"`
-	BodyTemplate   string                `json:"body_template"`
+	UUID         string            `json:"uuid"`
+	TenantUUID   string            `json:"tenant_uuid"`
+	Name         string            `json:"name"`
+	Description  string            `json:"description"`
+	UsagePrompt  string            `json:"usage_prompt"`
+	Method       string            `json:"method"`
+	URL          string            `json:"url"`
+	Headers      map[string]string `json:"headers"`
+	BodyTemplate string            `json:"body_template"`
 	// BodyType is the request body mode: none|json|multipart|form_urlencoded|raw.
 	BodyType       string                `json:"body_type"`
 	Parameters     []ExternalApiParamDef `json:"parameters"`
