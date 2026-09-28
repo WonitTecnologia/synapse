@@ -72,13 +72,13 @@ client, err := synapse.NewClient("seu-token", &synapse.Options{
 | `client.Google`      | `GoogleCase`      | Integração Google Vision AI (OCR)                |
 | `client.OpenAI`      | `OpenAICase`      | Chat, análise de imagem, transcrição de áudio    |
 | `client.Chatvolt`    | `ChatvoltCase`    | Query a agentes Chatvolt                         |
-| `client.OpenRouter`  | `OpenRouterCase`  | Workspace OpenRouter (sync, modelos, analytics)  |
+| `client.OpenRouter`  | `OpenRouterCase`  | Workspace OpenRouter (sync, modelos, service tiers, analytics) |
 | `client.Collection`  | `CollectionCase`  | Coleções vetoriais (Qdrant) da base de conhecimento |
 | `client.Document`    | `DocumentCase`    | Upload e vetorização de documentos               |
 | `client.Agent`       | `AgentCase`       | CRUD de agentes de IA + chat (com RAG)           |
 | `client.SystemAgent` | `SystemAgentCase` | Agentes de sistema (plataforma) + chat dedicado  |
 | `client.Mcp`         | `McpCase`         | Integrações MCP (Model Context Protocol)         |
-| `client.ExternalApi` | `ExternalApiCase` | APIs externas (HTTP cruas) como tools do agente  |
+| `client.ExternalApi` | `ExternalApiCase` | APIs externas (HTTP cruas) como tools do agente ([ver seção](#external-apis-api-tools)) |
 | `client.Monitor`     | `MonitorCase`     | **WebSocket de monitoramento** — stream de eventos do agente em tempo real ([ver seção](#websocket-de-monitoramento-monitor)) |
 | `client.ChatStream`  | `ChatStreamCase`  | **WebSocket de chat** — conversa bidirecional com agentes em tempo real ([ver seção](#websocket-de-chat-chatstream)) |
 
@@ -387,6 +387,31 @@ for _, item := range resp.Items {
 }
 ```
 
+### Service tiers de um modelo
+
+`ListModelTiers` retorna os service tiers (`priority`, `flex`) disponíveis para
+um modelo do OpenRouter, com os preços crus por token (USD, strings exatamente
+como o OpenRouter devolve) e os provedores que atendem cada tier. Um tier `nil`
+significa que o modelo não o oferece.
+
+```go
+resp, err := client.OpenRouter.ListModelTiers(ctx, "openai/gpt-5.2")
+if resp.Tiers.Priority != nil {
+    fmt.Println(resp.Tiers.Priority.PromptPrice, resp.Tiers.Priority.CompletionPrice)
+    fmt.Println(resp.Tiers.Priority.Providers)
+}
+if resp.Tiers.Flex != nil {
+    fmt.Println(resp.Tiers.Flex.PromptPrice, resp.Tiers.Flex.CompletionPrice)
+    fmt.Println(resp.Tiers.Flex.Providers)
+}
+```
+
+| Campo (`OpenRouterModelTierInfo`) | Tipo | Descrição |
+|---|---|---|
+| `PromptPrice` | `string` | Preço do token de prompt em USD (string crua do OpenRouter) |
+| `CompletionPrice` | `string` | Preço do token de completion em USD (string crua do OpenRouter) |
+| `Providers` | `[]string` | Provedores que atendem o tier (ex.: `openai/fast`) |
+
 ---
 
 ## Agent
@@ -477,6 +502,44 @@ err := client.SystemAgent.CancelChat(ctx, synapse.CancelChatRequest{
     JobID: "uuid-do-job",
 })
 ```
+
+---
+
+## External APIs (API tools)
+
+APIs externas são endpoints HTTP crus cadastrados pelo tenant que o agente de IA
+invoca como tools de function calling (`client.ExternalApi` — CRUD completo:
+`Create`, `Get`, `List`, `Update`, `Toggle`, `Delete`). Cada parâmetro declarado
+em `Parameters` (`ExternalApiParamDef`) vira uma propriedade do JSON Schema da
+tool e é interpolado como `{{nome}}` na URL, nos headers ou no corpo, conforme o
+`Location`.
+
+### Tipo de corpo (`body_type`)
+
+O campo `BodyType` (`body_type`) — presente em `CreateExternalApiRequest`,
+`UpdateExternalApiRequest` e `ExternalApiResponse` — define como o executor
+monta o corpo da requisição: `none` | `json` | `multipart` | `form_urlencoded` |
+`raw`. Vazio = `json` (retrocompatível).
+
+| Valor | Comportamento do executor |
+|---|---|
+| `json` (default) | `BodyTemplate` interpolado, enviado com `Content-Type: application/json` |
+| `raw` | `BodyTemplate` interpolado enviado como string crua; o `Content-Type` vem dos headers configurados (não é forçado json) |
+| `multipart` | Corpo `multipart/form-data` **combinável**: parâmetros com `Location: "form"` viram campos texto (com `Type: "object"`/`"array"` são serializados como JSON no campo — ex.: `metadata={"a":1}`); parâmetros com `Location: "file"` / `Type: "file"` viram campos arquivo |
+| `form_urlencoded` | Parâmetros com `Location: "form"` viram corpo `application/x-www-form-urlencoded` (`object`/`array` também viram JSON no valor) |
+| `none` | Sem corpo |
+
+Parâmetros `query`, `path` e `header` combinam livremente com qualquer
+`body_type` — o tipo de corpo só define como o **corpo** é montado.
+
+### Parâmetros de arquivo (`type: "file"`)
+
+`Type` aceita `string|number|integer|boolean|array|object|file` e `Location`
+aceita `query|path|header|body|form|file`. No schema de function calling, um
+parâmetro `file` aparece ao LLM como `string` (URL), com descrição orientando
+que o valor deve ser a URL de um arquivo — por exemplo, a URL de mídia de um
+anexo recebido na conversa. O executor baixa essa URL e a anexa como binário no
+campo de arquivo do multipart (também aceita valores `data:...;base64,...`).
 
 ---
 
