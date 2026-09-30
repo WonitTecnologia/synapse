@@ -99,6 +99,10 @@ type Client struct {
 	// chat is billed on the caller tenant's OpenRouter key).
 	SystemAgent SystemAgentCase
 
+	// Swarm covers the Builder system agent's swarm orchestration: state query
+	// and stop/pause/resume control of running swarms.
+	Swarm SwarmCase
+
 	// Mcp covers MCP (Model Context Protocol) server integration management.
 	Mcp McpCase
 
@@ -165,6 +169,7 @@ func NewClient(token string, opts *Options) (*Client, error) {
 		Document:    newDocumentClient(hc),
 		Agent:       newAgentClient(hc),
 		SystemAgent: newSystemAgentClient(hc),
+		Swarm:       newSwarmClient(hc),
 		Mcp:         newMcpClient(hc),
 		ExternalApi: newExternalApiClient(hc),
 		ApiArtifact: newApiArtifactClient(hc),

@@ -15,9 +15,10 @@ import (
 // MonitorCase provides access to the real-time agent event WebSocket.
 //
 // The stream is receive-only: the server pushes agent execution events (chat,
-// tool_call/MCP, RAG, errors, file processing and tool_agent — internal
+// tool_call/MCP, RAG, errors, file processing, tool_agent — internal
 // verification agents such as the grounding judge, the parameter judge and the
-// API artifact executor) and the SDK automatically acknowledges each delivery.
+// API artifact executor — and swarm — transitions of Builder swarm tasks) and
+// the SDK automatically acknowledges each delivery.
 // A master (SYSTEM_ADMIN) token receives events from every tenant; a tenant
 // token receives only its own tenant's events.
 type MonitorCase interface {
@@ -59,6 +60,11 @@ const (
 	// tool_agent ("judge" | "param_judge" | "api_artifact"), status, findings
 	// and the execution's token usage; Tokens mirrors that usage for transport.
 	EventCategoryToolAgent = "tool_agent"
+	// EventCategorySwarm is one transition of a Builder swarm task (or of the
+	// swarm itself). Detail carries a SwarmEventPayload: swarm_id, task_id,
+	// title, role, model, status, progress, error, conversation_uuid and
+	// tenant_uuid.
+	EventCategorySwarm = "swarm"
 )
 
 // AgentEventRagChunk is one retrieved RAG chunk with its source file and

@@ -128,6 +128,15 @@ const (
 	// pathSystemAgentChatCancel cancels a queued or running chat job: the worker
 	// drops the job from the queue or aborts the in-flight turn.
 	pathSystemAgentChatCancel = "/api/agent/application/system-agent/chat/cancel"
+	// pathSystemAgentSwarm returns the full state of a Builder swarm (GET; fmt.Sprintf
+	// with the swarm ID). One active swarm per conversation.
+	pathSystemAgentSwarm = "/api/agent/application/system-agent/swarm/%s"
+	// pathSystemAgentSwarmStop/Pause/Resume control a swarm (POST; fmt.Sprintf
+	// with the swarm ID): stop cancels every child job, pause freezes the swarm
+	// without token spend, resume re-enqueues the pending tasks.
+	pathSystemAgentSwarmStop   = "/api/agent/application/system-agent/swarm/%s/stop"
+	pathSystemAgentSwarmPause  = "/api/agent/application/system-agent/swarm/%s/pause"
+	pathSystemAgentSwarmResume = "/api/agent/application/system-agent/swarm/%s/resume"
 )
 
 // ─── Agent Prompt paths ───────────────────────────────────────────────────────

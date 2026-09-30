@@ -77,6 +77,7 @@ client, err := synapse.NewClient("seu-token", &synapse.Options{
 | `client.Document`    | `DocumentCase`    | Upload e vetorização de documentos               |
 | `client.Agent`       | `AgentCase`       | CRUD de agentes de IA + chat (com RAG)           |
 | `client.SystemAgent` | `SystemAgentCase` | Agentes de sistema (plataforma) + chat dedicado  |
+| `client.Swarm`       | `SwarmCase`       | Modo Swarm do Construtor — estado e controle (stop/pause/resume) ([ver seção](#swarm-modo-swarm-do-construtor)) |
 | `client.Mcp`         | `McpCase`         | Integrações MCP (Model Context Protocol)         |
 | `client.ExternalApi` | `ExternalApiCase` | APIs externas (HTTP cruas) como tools do agente ([ver seção](#external-apis-api-tools)) |
 | `client.Monitor`     | `MonitorCase`     | **WebSocket de monitoramento** — stream de eventos do agente em tempo real ([ver seção](#websocket-de-monitoramento-monitor)) |
@@ -526,6 +527,158 @@ err := client.SystemAgent.CancelChat(ctx, synapse.CancelChatRequest{
 
 ---
 
+## Swarm (Modo Swarm do Construtor)
+
+O Modo Swarm permite ao Agente Construtor (system agent) **orquestrar a si
+mesmo**: diante de uma tarefa grande e decomponível (ex.: "crie 3 agentes de
+vendas", "audite os prompts de todos os agentes"), ele abre um **swarm** — até
+8 subagentes efêmeros do próprio Construtor rodando **em paralelo**, cada um
+com contexto zerado (somente o prompt da subtarefa + system prompt base) e
+**sem tools de escrita** (planos/apply ficam bloqueados no papel subagente — só
+leitura, análise e rascunho em texto). Quando todas as tarefas terminam, os
+relatórios voltam agregados como um turno sintético na conversa principal e o
+orquestrador consolida o resultado para o usuário.
+
+- Há no máximo **um swarm ativo por conversa** — abrir outro retorna erro
+  orientando concluir/parar o atual.
+- **Parar/pausar param os serviços de verdade**: o cancelamento propaga para
+  cada job filho e derruba as chamadas LLM em voo (sem queimar token parado).
+- Toda transição (queued→running→done, pausa, stop, stall detectado) é
+  registrada na **timeline** (`History`) e publicada como evento em tempo real
+  (ver [Eventos do swarm](#eventos-do-swarm-em-tempo-real)).
+
+### Modos de permissão e modo swarm no chat
+
+O `ChatRequest` do system agent aceita dois campos por conversa — enviados a
+cada mensagem e persistidos pelo backend (sobrevivem a reload da página).
+Agentes comuns (não-system) ignoram os dois campos.
+
+| Campo | Tipo | Valores | Descrição |
+|---|---|---|---|
+| `PermissionMode` | `string` | `always_ask` (default) \| `ask_when_needed` \| `never_ask` | Como o apply de planos é autorizado nesta conversa |
+| `SwarmMode` | `string` | `on` \| `off` (default) | `on` instrui o Construtor a decompor a tarefa e abrir um swarm |
+
+| Modo de permissão | Comportamento |
+|---|---|
+| `PermissionModeAlwaysAsk` (`always_ask`) | Padrão, comportamento atual: todo apply de plano só ocorre após autorização explícita do usuário |
+| `PermissionModeAskWhenNeeded` (`ask_when_needed`) | Planos **somente-criação** (classificação determinística no backend) são aplicados automaticamente; planos com update/delete ainda perguntam |
+| `PermissionModeNeverAsk` (`never_ask`) | "Yolo": todo plano finalizado é aplicado **na mesma cadeia**, sem mensagem de autorização. Cada auto-apply é auditado nos logs do agente |
+
+### Tipos
+
+`SwarmState` — estado completo do swarm, mantido pelo backend no Redis
+(TTL de 24h renovado a cada acesso):
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `SwarmID` | `string` | Identificador do swarm |
+| `ConversationUUID` | `string` | Conversa principal (do Construtor) dona do swarm |
+| `ParentJobID` | `string` | Job de dispatch do turno orquestrador que abriu o swarm |
+| `Status` | `SwarmStatus` | Status do swarm (mesma escala das tarefas) |
+| `PermissionMode` | `string` | Modo de permissão vigente quando o swarm foi aberto |
+| `Tasks` | `[]SwarmTask` | Uma entrada por tarefa/subagente |
+| `History` | `[]SwarmHistoryEntry` | Timeline de transições (ring buffer, máx. 50) — trilha de auditoria |
+| `Counters` | `SwarmCounters` | Progresso agregado: `Total`, `Queued`, `Running`, `Done`, `Failed`, `Paused`, `Stopped` |
+
+`SwarmTask` — uma tarefa executada por um subagente efêmero:
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `TaskID` | `string` | Identificador da tarefa dentro do swarm |
+| `Title` | `string` | Título curto da subtarefa |
+| `Role` | `string` | Papel pedido pelo orquestrador (`deep` = modelo cheio; vazio = tier econômico do modelo do Construtor) |
+| `Model` | `string` | Modelo LLM efetivamente atribuído ao subagente |
+| `Status` | `SwarmStatus` | `queued` \| `running` \| `done` \| `failed` \| `paused` \| `stopped` \| `stalled` (constantes `SwarmStatus*`) |
+| `JobID` | `string` | Job de dispatch executando a tarefa (correlaciona com os logs do agente) |
+| `Report` | `string` | Relatório final do subagente (agregado na consolidação) |
+| `QueuedAt` / `StartedAt` / `FinishedAt` | `string` | Marcos temporais — `queued_at → started_at` é o tempo real de fila |
+| `LastProgressAt` | `string` | Sinal de vida, renovado a cada tool call do subagente (base do detector de travamento) |
+| `Error` | `string` | Erro instrutivo (e relatório parcial) de uma tarefa falha |
+
+`SwarmHistoryEntry` — uma entrada da timeline: `Ts` (timestamp), `TaskID`
+(vazio em eventos do swarm inteiro), `From`/`To` (`SwarmStatus`) e `Detail`.
+
+### Métodos (`client.Swarm`)
+
+| Método | Endpoint | Descrição |
+|---|---|---|
+| `GetSwarm(ctx, swarmID)` | `GET /api/agent/application/system-agent/swarm/:id` | Estado completo do swarm (tarefas, contadores e timeline) |
+| `StopSwarm(ctx, swarmID)` | `POST .../swarm/:id/stop` | Cancela **todos** os jobs filhos (LLM em voo morre na hora); a consolidação roda com os relatórios existentes |
+| `PauseSwarm(ctx, swarmID)` | `POST .../swarm/:id/pause` | Congela o swarm: tarefas running são canceladas (sem gasto de token) e queued aguardam retomada |
+| `ResumeSwarm(ctx, swarmID)` | `POST .../swarm/:id/resume` | Limpa a pausa e re-enfileira as tarefas pendentes como jobs novos |
+
+Todos retornam o `*SwarmState` atualizado. Use token de **tenant**: swarms são
+escopados pelo tenant chamador.
+
+### Eventos do swarm em tempo real
+
+Cada transição de tarefa (e do swarm inteiro) é publicada no
+[WebSocket de monitoramento](#websocket-de-monitoramento-monitor) como um
+`AgentEvent` de categoria `EventCategorySwarm` (`"swarm"`). O campo `Detail`
+carrega um `SwarmEventPayload`:
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `SwarmID` | `string` | Swarm de origem |
+| `TaskID` | `string` | Tarefa (vazio em eventos do swarm inteiro, ex.: pausa geral) |
+| `Title` / `Role` / `Model` | `string` | Descrição da tarefa |
+| `Status` | `SwarmStatus` | Novo status da tarefa/swarm |
+| `Progress` | `int` | Progresso da tarefa, quando informado |
+| `Error` | `string` | Erro, em transições para `failed` |
+| `ConversationUUID` / `TenantUUID` | `string` | Correlação com a conversa e o tenant |
+
+### Exemplo completo
+
+```go
+// 1. Chat com o Construtor ativando swarm e modo de permissão da conversa.
+resp, err := client.SystemAgent.Chat(ctx, synapse.ChatRequest{
+	AgentUUID:        "uuid-do-construtor",
+	Message:          "Crie 3 agentes de vendas (N1, N2 e retenção).",
+	ConversationUUID: &convUUID,
+	PermissionMode:   synapse.PermissionModeAskWhenNeeded,
+	SwarmMode:        synapse.SwarmModeOn,
+})
+if err != nil {
+	log.Fatal(err)
+}
+
+// 2. Acompanhamento ao vivo: eventos de categoria swarm no Monitor.
+stream, _ := client.Monitor.StreamLogs(ctx, nil)
+defer stream.Close()
+go func() {
+	for evt := range stream.Events() {
+		if evt.Category != synapse.EventCategorySwarm {
+			continue
+		}
+		var p synapse.SwarmEventPayload
+		b, _ := json.Marshal(evt.Detail)
+		if json.Unmarshal(b, &p) == nil {
+			fmt.Printf("[swarm %s] %s %s → %s\n", p.SwarmID, p.TaskID, p.Title, p.Status)
+		}
+	}
+}()
+
+// 3. Estado pontual + timeline (painel de acompanhamento).
+state, err := client.Swarm.GetSwarm(ctx, swarmID)
+if err != nil {
+	log.Fatal(err)
+}
+fmt.Printf("progresso: %d/%d concluídas\n", state.Counters.Done, state.Counters.Total)
+for _, t := range state.Tasks {
+	fmt.Printf("- %s [%s] %s\n", t.TaskID, t.Status, t.Title)
+}
+for _, h := range state.History {
+	fmt.Printf("  %s %s: %s → %s %s\n", h.Ts, h.TaskID, h.From, h.To, h.Detail)
+}
+
+// 4. Controle: pausar (congela sem gasto), retomar ou parar tudo.
+state, err = client.Swarm.PauseSwarm(ctx, swarmID)
+state, err = client.Swarm.ResumeSwarm(ctx, swarmID)
+state, err = client.Swarm.StopSwarm(ctx, swarmID)
+```
+
+---
+
 ## External APIs (API tools)
 
 APIs externas são endpoints HTTP crus cadastrados pelo tenant que o agente de IA
@@ -631,9 +784,9 @@ stream, err := client.Monitor.StreamLogs(ctx, &synapse.StreamLogsOptions{
 | `ConversationUUID` | `*string` | Conversa interna |
 | `ConversationExternalID` | `*string` | ID externo (ex.: protocolo) |
 | `Level` | `string` | `info` \| `warn` \| `error` |
-| `Category` | `string` | `EventCategoryChat` \| `EventCategoryToolCall` \| `EventCategoryRAG` \| `EventCategoryError` \| `EventCategoryFileProcess` |
+| `Category` | `string` | `EventCategoryChat` \| `EventCategoryToolCall` \| `EventCategoryRAG` \| `EventCategoryError` \| `EventCategoryFileProcess` \| `EventCategorySwarm` |
 | `Summary` | `string` | Resumo humano do evento |
-| `Detail` | `map[string]any` | Detalhe por categoria (chat: `user_msg`/`response` íntegros, `reasoning`…) |
+| `Detail` | `map[string]any` | Detalhe por categoria (chat: `user_msg`/`response` íntegros, `reasoning`…; swarm: `SwarmEventPayload` — ver [Swarm](#swarm-modo-swarm-do-construtor)) |
 | `ToolName` | `*string` | (tool_call) nome da ferramenta |
 | `ToolParams` | `map[string]any` | (tool_call) parâmetros **sem truncar** |
 | `ToolSuccess` | `*bool` | (tool_call) sucesso |

@@ -1045,6 +1045,19 @@ type ChatRequest struct {
 	// Attachment carries a file or media URL for agents that accept attachments.
 	// The Synapse downloads the file from this URL and processes it according to the type.
 	Attachment *ChatAttachment `json:"attachment,omitempty"`
+	// PermissionMode controls how the SYSTEM AGENT pipeline gates plan application
+	// in this conversation: PermissionModeAlwaysAsk (default — every plan apply
+	// requires explicit user authorization), PermissionModeAskWhenNeeded
+	// (create-only plans apply automatically) or PermissionModeNeverAsk (every
+	// finalized plan applies without asking). Sent on each message and persisted
+	// per conversation by the backend. Ignored by regular (non-system) agents.
+	PermissionMode string `json:"permission_mode,omitempty"`
+	// SwarmMode tells the SYSTEM AGENT pipeline that the user enabled the swarm
+	// mode for this conversation (SwarmModeOn; SwarmModeOff/empty is the default):
+	// the agent is instructed to decompose the task and open a swarm via the
+	// sistema_iniciar_swarm tool. Sent on each message and persisted per
+	// conversation by the backend. Ignored by regular (non-system) agents.
+	SwarmMode string `json:"swarm_mode,omitempty"`
 }
 
 // CancelChatRequest is the body for cancelling a queued or running chat job.
@@ -1598,4 +1611,144 @@ type ListQueuedJobsParams struct {
 	TenantUUID string
 	Cursor     string
 	Count      int64
+}
+
+// ─── Swarm (System Agent) ─────────────────────────────────────────────────────
+
+// SwarmStatus is the lifecycle status of a swarm or of one of its tasks.
+type SwarmStatus string
+
+// Swarm/task lifecycle statuses. A task goes queued → running → done|failed;
+// pause/resume and stop can interrupt it, and the watchdog marks stalled tasks
+// (running without progress) that are later finished as failed.
+const (
+	// SwarmStatusQueued: task accepted and waiting for a dispatch worker slot.
+	SwarmStatusQueued SwarmStatus = "queued"
+	// SwarmStatusRunning: task being executed by a subagent right now.
+	SwarmStatusRunning SwarmStatus = "running"
+	// SwarmStatusDone: task finished with a report.
+	SwarmStatusDone SwarmStatus = "done"
+	// SwarmStatusFailed: task finished with an error (see SwarmTask.Error).
+	SwarmStatusFailed SwarmStatus = "failed"
+	// SwarmStatusPaused: swarm paused by the user — running tasks were cancelled
+	// (no token spend) and queued tasks wait for a resume.
+	SwarmStatusPaused SwarmStatus = "paused"
+	// SwarmStatusStopped: swarm stopped by the user — every child job was
+	// cancelled and the consolidation runs with whatever reports exist.
+	SwarmStatusStopped SwarmStatus = "stopped"
+	// SwarmStatusStalled: task running without progress past the stall threshold,
+	// flagged by the watchdog; finished as failed if the stall persists.
+	SwarmStatusStalled SwarmStatus = "stalled"
+	// SwarmStatusExpired: swarm without any transition past the watchdog's zombie
+	// threshold — it is closed and releases the conversation's swarm slot.
+	SwarmStatusExpired SwarmStatus = "expired"
+)
+
+// Permission modes of a system-agent conversation (ChatRequest.PermissionMode).
+const (
+	// PermissionModeAlwaysAsk is the default: every plan apply requires explicit
+	// user authorization.
+	PermissionModeAlwaysAsk = "always_ask"
+	// PermissionModeAskWhenNeeded auto-applies create-only plans; plans with
+	// updates/deletes still require explicit authorization.
+	PermissionModeAskWhenNeeded = "ask_when_needed"
+	// PermissionModeNeverAsk auto-applies every finalized plan without asking
+	// (the "yolo" mode). Every auto-apply is audited in the agent logs.
+	PermissionModeNeverAsk = "never_ask"
+)
+
+// Swarm modes of a system-agent conversation (ChatRequest.SwarmMode).
+const (
+	// SwarmModeOn instructs the system agent to decompose the task and open a swarm.
+	SwarmModeOn = "on"
+	// SwarmModeOff is the default: the agent decides on its own whether to open a swarm.
+	SwarmModeOff = "off"
+)
+
+// SwarmTask is one ephemeral subagent task of a swarm: it runs with zeroed
+// conversation history (base system prompt + task prompt only) and cannot
+// write — plan/apply tools are blocked in the subagent role.
+type SwarmTask struct {
+	TaskID string `json:"task_id"`
+	Title  string `json:"title"`
+	// Role is the subagent role requested by the orchestrator (e.g. "deep" runs
+	// the full model on critical subtasks; empty uses the economic tier of the
+	// Builder's model).
+	Role string `json:"role,omitempty"`
+	// Model is the LLM effectively assigned to the subagent.
+	Model  string      `json:"model,omitempty"`
+	Status SwarmStatus `json:"status"`
+	// JobID is the dispatch job executing this task (correlates with agent_logs).
+	JobID string `json:"job_id,omitempty"`
+	// Report is the subagent's final report, aggregated into the consolidation
+	// turn of the main conversation.
+	Report     string `json:"report,omitempty"`
+	QueuedAt   string `json:"queued_at,omitempty"`
+	StartedAt  string `json:"started_at,omitempty"`
+	FinishedAt string `json:"finished_at,omitempty"`
+	// LastProgressAt is the task's liveness signal, refreshed on every subagent
+	// tool call; the watchdog uses it to detect stalled tasks.
+	LastProgressAt string `json:"last_progress_at,omitempty"`
+	// Error holds the instructive error (and the partial report) of a failed
+	// task — the post-mortem without digging through logs.
+	Error string `json:"error,omitempty"`
+}
+
+// SwarmHistoryEntry is one entry of the swarm's transition timeline (ring
+// buffer, max 50, kept inside the swarm state): every status change
+// (queued→running→done…), pause, resume, stop and watchdog action, with a
+// timestamp. TaskID is empty on swarm-level entries.
+type SwarmHistoryEntry struct {
+	Ts     string      `json:"ts"`
+	TaskID string      `json:"task_id,omitempty"`
+	From   SwarmStatus `json:"from,omitempty"`
+	To     SwarmStatus `json:"to"`
+	Detail string      `json:"detail,omitempty"`
+}
+
+// SwarmCounters aggregates the swarm's progress by task status.
+type SwarmCounters struct {
+	Total   int `json:"total"`
+	Queued  int `json:"queued"`
+	Running int `json:"running"`
+	Done    int `json:"done"`
+	Failed  int `json:"failed"`
+	Paused  int `json:"paused"`
+	Stopped int `json:"stopped"`
+}
+
+// SwarmState is the full state of a swarm of the Builder system agent, stored
+// server-side in Redis (24h TTL renewed on access). There is at most one
+// active swarm per conversation. GetSwarm returns it; History is the audit
+// trail and powers the tracking timeline.
+type SwarmState struct {
+	SwarmID          string `json:"swarm_id"`
+	ConversationUUID string `json:"conversation_uuid"`
+	// ParentJobID is the dispatch job of the orchestrator turn that opened the swarm.
+	ParentJobID string      `json:"parent_job_id,omitempty"`
+	Status      SwarmStatus `json:"status"`
+	// PermissionMode is the conversation's permission mode in effect when the
+	// swarm was opened (see the PermissionMode* constants).
+	PermissionMode string              `json:"permission_mode,omitempty"`
+	Tasks          []SwarmTask         `json:"tasks"`
+	History        []SwarmHistoryEntry `json:"history,omitempty"`
+	Counters       SwarmCounters       `json:"counters"`
+}
+
+// SwarmEventPayload is the Detail payload of the AgentEvent events with
+// category EventCategorySwarm (see monitor.go): one event per task transition
+// (queued/running/done/failed/paused/stopped/stalled), feeding the live swarm
+// cards on the frontend. TaskID/Title/Role/Model describe the task; swarm-level
+// events (pause/resume/stop of the whole swarm) omit TaskID.
+type SwarmEventPayload struct {
+	SwarmID          string      `json:"swarm_id"`
+	TaskID           string      `json:"task_id,omitempty"`
+	Title            string      `json:"title,omitempty"`
+	Role             string      `json:"role,omitempty"`
+	Model            string      `json:"model,omitempty"`
+	Status           SwarmStatus `json:"status"`
+	Progress         int         `json:"progress,omitempty"`
+	Error            string      `json:"error,omitempty"`
+	ConversationUUID string      `json:"conversation_uuid,omitempty"`
+	TenantUUID       string      `json:"tenant_uuid,omitempty"`
 }
