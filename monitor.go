@@ -61,9 +61,10 @@ const (
 	// and the execution's token usage; Tokens mirrors that usage for transport.
 	EventCategoryToolAgent = "tool_agent"
 	// EventCategorySwarm is one transition of a Builder swarm task (or of the
-	// swarm itself). Detail carries a SwarmEventPayload: swarm_id, task_id,
-	// title, role, model, status, progress, error, conversation_uuid and
-	// tenant_uuid.
+	// swarm itself). The typed Swarm field carries the canonical
+	// SwarmEventPayload: swarm_id, task_id, title, role, model, status,
+	// progress, error, conversation_uuid and tenant_uuid. The same payload is
+	// mirrored in Detail for legacy consumers.
 	EventCategorySwarm = "swarm"
 )
 
@@ -95,26 +96,31 @@ type AgentEventTokens struct {
 // AgentEvent is a real-time agent execution event. Unlike the persisted agent
 // log, tool parameters, tool results and API responses are NOT truncated.
 type AgentEvent struct {
-	UUID                   string            `json:"uuid"`
-	TenantUUID             string            `json:"tenant_uuid"`
-	AgentUUID              string            `json:"agent_uuid"`
-	AgentName              string            `json:"agent_name"`
-	ConversationUUID       *string           `json:"conversation_uuid,omitempty"`
-	ConversationExternalID *string           `json:"conversation_external_id,omitempty"`
-	Level                  string            `json:"level"`
-	Category               string            `json:"category"`
-	Summary                string            `json:"summary"`
-	Detail                 map[string]any    `json:"detail,omitempty"`
-	ToolName               *string           `json:"tool_name,omitempty"`
-	ToolParams             map[string]any    `json:"tool_params,omitempty"`
-	ToolSuccess            *bool             `json:"tool_success,omitempty"`
-	ToolResult             string            `json:"tool_result,omitempty"`
-	APIResponse            string            `json:"api_response,omitempty"`
-	Rag                    *AgentEventRag    `json:"rag,omitempty"`
-	DurationMs             *int              `json:"duration_ms,omitempty"`
-	Model                  *string           `json:"model,omitempty"`
-	Tokens                 *AgentEventTokens `json:"tokens,omitempty"`
-	CreatedAt              time.Time         `json:"created_at"`
+	UUID                   string         `json:"uuid"`
+	TenantUUID             string         `json:"tenant_uuid"`
+	AgentUUID              string         `json:"agent_uuid"`
+	AgentName              string         `json:"agent_name"`
+	ConversationUUID       *string        `json:"conversation_uuid,omitempty"`
+	ConversationExternalID *string        `json:"conversation_external_id,omitempty"`
+	Level                  string         `json:"level"`
+	Category               string         `json:"category"`
+	Summary                string         `json:"summary"`
+	Detail                 map[string]any `json:"detail,omitempty"`
+	// Swarm is the canonical typed payload of events with category
+	// EventCategorySwarm (nil for every other category). The same
+	// SwarmEventPayload is mirrored in Detail for legacy consumers — new
+	// consumers should prefer this field.
+	Swarm       *SwarmEventPayload `json:"swarm,omitempty"`
+	ToolName    *string            `json:"tool_name,omitempty"`
+	ToolParams  map[string]any     `json:"tool_params,omitempty"`
+	ToolSuccess *bool              `json:"tool_success,omitempty"`
+	ToolResult  string             `json:"tool_result,omitempty"`
+	APIResponse string             `json:"api_response,omitempty"`
+	Rag         *AgentEventRag     `json:"rag,omitempty"`
+	DurationMs  *int               `json:"duration_ms,omitempty"`
+	Model       *string            `json:"model,omitempty"`
+	Tokens      *AgentEventTokens  `json:"tokens,omitempty"`
+	CreatedAt   time.Time          `json:"created_at"`
 }
 
 // wsEnvelope is the server → client delivery frame; every envelope must be

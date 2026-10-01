@@ -620,8 +620,10 @@ escopados pelo tenant chamador.
 
 Cada transição de tarefa (e do swarm inteiro) é publicada no
 [WebSocket de monitoramento](#websocket-de-monitoramento-monitor) como um
-`AgentEvent` de categoria `EventCategorySwarm` (`"swarm"`). O campo `Detail`
-carrega um `SwarmEventPayload`:
+`AgentEvent` de categoria `EventCategorySwarm` (`"swarm"`). O campo tipado
+`AgentEvent.Swarm` (`*SwarmEventPayload`, JSON `swarm`) é o contrato canônico
+do payload; o mesmo conteúdo vai espelhado em `Detail` para consumidores
+legados:
 
 | Campo | Tipo | Descrição |
 |---|---|---|
@@ -653,14 +655,11 @@ stream, _ := client.Monitor.StreamLogs(ctx, nil)
 defer stream.Close()
 go func() {
 	for evt := range stream.Events() {
-		if evt.Category != synapse.EventCategorySwarm {
+		if evt.Category != synapse.EventCategorySwarm || evt.Swarm == nil {
 			continue
 		}
-		var p synapse.SwarmEventPayload
-		b, _ := json.Marshal(evt.Detail)
-		if json.Unmarshal(b, &p) == nil {
-			fmt.Printf("[swarm %s] %s %s → %s\n", p.SwarmID, p.TaskID, p.Title, p.Status)
-		}
+		p := evt.Swarm
+		fmt.Printf("[swarm %s] %s %s → %s\n", p.SwarmID, p.TaskID, p.Title, p.Status)
 	}
 }()
 
@@ -792,7 +791,8 @@ stream, err := client.Monitor.StreamLogs(ctx, &synapse.StreamLogsOptions{
 | `Level` | `string` | `info` \| `warn` \| `error` |
 | `Category` | `string` | `EventCategoryChat` \| `EventCategoryToolCall` \| `EventCategoryRAG` \| `EventCategoryError` \| `EventCategoryFileProcess` \| `EventCategorySwarm` |
 | `Summary` | `string` | Resumo humano do evento |
-| `Detail` | `map[string]any` | Detalhe por categoria (chat: `user_msg`/`response` íntegros, `reasoning`…; swarm: `SwarmEventPayload` — ver [Swarm](#swarm-modo-swarm-do-construtor)) |
+| `Detail` | `map[string]any` | Detalhe por categoria (chat: `user_msg`/`response` íntegros, `reasoning`…; swarm: `SwarmEventPayload` espelhado — ver [Swarm](#swarm-modo-swarm-do-construtor)) |
+| `Swarm` | `*SwarmEventPayload` | (swarm) payload tipado canônico dos eventos `EventCategorySwarm` — ver [Swarm](#swarm-modo-swarm-do-construtor) |
 | `ToolName` | `*string` | (tool_call) nome da ferramenta |
 | `ToolParams` | `map[string]any` | (tool_call) parâmetros **sem truncar** |
 | `ToolSuccess` | `*bool` | (tool_call) sucesso |

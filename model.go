@@ -1735,11 +1735,13 @@ type SwarmState struct {
 	Counters       SwarmCounters       `json:"counters"`
 }
 
-// SwarmEventPayload is the Detail payload of the AgentEvent events with
-// category EventCategorySwarm (see monitor.go): one event per task transition
-// (queued/running/done/failed/paused/stopped/stalled), feeding the live swarm
-// cards on the frontend. TaskID/Title/Role/Model describe the task; swarm-level
-// events (pause/resume/stop of the whole swarm) omit TaskID.
+// SwarmEventPayload is the payload of the AgentEvent events with category
+// EventCategorySwarm (see monitor.go), exposed in the typed AgentEvent.Swarm
+// field and mirrored in Detail for legacy consumers: one event per task
+// transition (queued/running/done/failed/paused/stopped/stalled), feeding the
+// live swarm cards on the frontend. TaskID/Title/Role/Model describe the
+// task; swarm-level events (pause/resume/stop of the whole swarm) omit
+// TaskID.
 type SwarmEventPayload struct {
 	SwarmID          string      `json:"swarm_id"`
 	TaskID           string      `json:"task_id,omitempty"`
