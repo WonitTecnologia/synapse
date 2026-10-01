@@ -17,12 +17,25 @@ import (
 //
 // Live progress is delivered as AgentEvent events of category
 // EventCategorySwarm (see Monitor); this case covers the REST side: state
-// query and stop/pause/resume control. Use a TENANT token: swarms are scoped
+// query (by swarm ID or by conversation), subagent trace and stop/pause/resume
+// control. Use a TENANT token: swarms are scoped
 // to the caller tenant, and there is at most one active swarm per conversation.
 type SwarmCase interface {
 	// GetSwarm returns the full state of a swarm — tasks, counters and the
 	// transition timeline (History) — for rendering the swarm panel.
 	GetSwarm(ctx context.Context, swarmID string) (*SwarmState, error)
+
+	// GetSwarmByConversation returns the state of the conversation's ACTIVE
+	// swarm — same payload as GetSwarm — for rehydrating the swarm panel after
+	// a page reload, when only the conversation UUID is known. Returns a 404
+	// *APIError when the conversation has no active swarm.
+	GetSwarmByConversation(ctx context.Context, conversationUUID string) (*SwarmState, error)
+
+	// GetSwarmTrace returns the execution trace of one task's subagent, kept
+	// server-side in Redis for 24h: the ordered entries the subagent produced
+	// while working on the task, for post-mortem inspection and for
+	// rehydrating the task's live view after a page reload.
+	GetSwarmTrace(ctx context.Context, swarmID, taskID string) (*SwarmTrace, error)
 
 	// StopSwarm cancels the whole swarm: every child job is cancelled (in-flight
 	// LLM calls die immediately) and the consolidation runs with whatever
@@ -52,6 +65,22 @@ func (s *swarmClient) GetSwarm(ctx context.Context, swarmID string) (*SwarmState
 	var out SwarmState
 	if err := s.http.get(ctx, fmt.Sprintf(pathSystemAgentSwarm, swarmID), nil, &out); err != nil {
 		return nil, fmt.Errorf("synapse/swarm.GetSwarm: %w", err)
+	}
+	return &out, nil
+}
+
+func (s *swarmClient) GetSwarmByConversation(ctx context.Context, conversationUUID string) (*SwarmState, error) {
+	var out SwarmState
+	if err := s.http.get(ctx, fmt.Sprintf(pathSystemAgentSwarmByConversation, conversationUUID), nil, &out); err != nil {
+		return nil, fmt.Errorf("synapse/swarm.GetSwarmByConversation: %w", err)
+	}
+	return &out, nil
+}
+
+func (s *swarmClient) GetSwarmTrace(ctx context.Context, swarmID, taskID string) (*SwarmTrace, error) {
+	var out SwarmTrace
+	if err := s.http.get(ctx, fmt.Sprintf(pathSystemAgentSwarmTaskTrace, swarmID, taskID), nil, &out); err != nil {
+		return nil, fmt.Errorf("synapse/swarm.GetSwarmTrace: %w", err)
 	}
 	return &out, nil
 }

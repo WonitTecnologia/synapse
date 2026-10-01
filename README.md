@@ -77,7 +77,7 @@ client, err := synapse.NewClient("seu-token", &synapse.Options{
 | `client.Document`    | `DocumentCase`    | Upload e vetorização de documentos               |
 | `client.Agent`       | `AgentCase`       | CRUD de agentes de IA + chat (com RAG)           |
 | `client.SystemAgent` | `SystemAgentCase` | Agentes de sistema (plataforma) + chat dedicado  |
-| `client.Swarm`       | `SwarmCase`       | Modo Swarm do Construtor — estado e controle (stop/pause/resume) ([ver seção](#swarm-modo-swarm-do-construtor)) |
+| `client.Swarm`       | `SwarmCase`       | Modo Swarm do Construtor — estado (por swarm ou por conversa), trace do subagente e controle (stop/pause/resume) ([ver seção](#swarm-modo-swarm-do-construtor)) |
 | `client.Mcp`         | `McpCase`         | Integrações MCP (Model Context Protocol)         |
 | `client.ExternalApi` | `ExternalApiCase` | APIs externas (HTTP cruas) como tools do agente ([ver seção](#external-apis-api-tools)) |
 | `client.Monitor`     | `MonitorCase`     | **WebSocket de monitoramento** — stream de eventos do agente em tempo real ([ver seção](#websocket-de-monitoramento-monitor)) |
@@ -546,6 +546,16 @@ orquestrador consolida o resultado para o usuário.
 - Toda transição (queued→running→done, pausa, stop, stall detectado) é
   registrada na **timeline** (`History`) e publicada como evento em tempo real
   (ver [Eventos do swarm](#eventos-do-swarm-em-tempo-real)).
+- Cada tarefa expõe a **atividade ao vivo** (`Activity`) — nota curta da ação
+  atual do subagente (ex.: `executando sistema_listar_agentes`) — no estado
+  (`SwarmTask.Activity`) e nos eventos em tempo real
+  (`SwarmEventPayload.Activity`).
+- O **trace do subagente** de cada tarefa (entradas ordenadas do que ele
+  produziu — tool calls, deltas do LLM) fica persistido no Redis por **24h** e
+  é consultável por tarefa (ver `GetSwarmTrace`).
+- O painel é **à prova de F5**: após reload, `GetSwarmByConversation` reidrata
+  o swarm ativo a partir do UUID da conversa (404 quando não há swarm ativo) e
+  `GetSwarmTrace` repõe o histórico ao vivo de cada tarefa.
 
 ### Modos de permissão e modo swarm no chat
 
@@ -595,6 +605,7 @@ conversa, ignorados por agentes não-system).
 | `Role` | `string` | Papel pedido pelo orquestrador (`deep` = modelo cheio; vazio = tier econômico do modelo do Construtor) |
 | `Model` | `string` | Modelo LLM efetivamente atribuído ao subagente |
 | `Status` | `SwarmStatus` | `queued` \| `running` \| `done` \| `failed` \| `paused` \| `stopped` \| `stalled` (constantes `SwarmStatus*`) |
+| `Activity` | `string` | Atividade ao vivo: nota curta da ação atual do subagente (ex.: `executando sistema_listar_agentes`), renovada a cada passo e limpa ao concluir |
 | `JobID` | `string` | Job de dispatch executando a tarefa (correlaciona com os logs do agente) |
 | `Report` | `string` | Relatório final do subagente (agregado na consolidação) |
 | `QueuedAt` / `StartedAt` / `FinishedAt` | `string` | Marcos temporais — `queued_at → started_at` é o tempo real de fila |
@@ -604,11 +615,26 @@ conversa, ignorados por agentes não-system).
 `SwarmHistoryEntry` — uma entrada da timeline: `Ts` (timestamp), `TaskID`
 (vazio em eventos do swarm inteiro), `From`/`To` (`SwarmStatus`) e `Detail`.
 
+`SwarmTrace` — trace de execução do subagente de uma tarefa, persistido no
+Redis por **24h** (`GetSwarmTrace`):
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `SwarmID` / `TaskID` | `string` | Identificação do swarm e da tarefa |
+| `Entries` | `[]SwarmTraceEntry` | Entradas ordenadas do que o subagente produziu na tarefa |
+| `UpdatedAt` | `string` | Última atualização do trace |
+
+`SwarmTraceEntry` — uma entrada do trace: `Kind` (classificação da entrada,
+ex.: tool call, delta do LLM), `Delta` (fragmento de conteúdo) e `Ts`
+(timestamp).
+
 ### Métodos (`client.Swarm`)
 
 | Método | Endpoint | Descrição |
 |---|---|---|
 | `GetSwarm(ctx, swarmID)` | `GET /api/agent/application/system-agent/swarm/:id` | Estado completo do swarm (tarefas, contadores e timeline) |
+| `GetSwarmByConversation(ctx, conversationUUID)` | `GET .../swarm/byconv/:conversation_uuid` | Mesmo payload do `GetSwarm`, resolvido pela conversa: reidrata o painel após F5/reload. Retorna `*APIError` **404** quando não há swarm ativo na conversa |
+| `GetSwarmTrace(ctx, swarmID, taskID)` | `GET .../swarm/:id/task/:task_id/trace` | Trace do subagente da tarefa (`*SwarmTrace`), persistido no Redis por 24h |
 | `StopSwarm(ctx, swarmID)` | `POST .../swarm/:id/stop` | Cancela **todos** os jobs filhos (LLM em voo morre na hora); a consolidação roda com os relatórios existentes |
 | `PauseSwarm(ctx, swarmID)` | `POST .../swarm/:id/pause` | Congela o swarm: tarefas running são canceladas (sem gasto de token) e queued aguardam retomada |
 | `ResumeSwarm(ctx, swarmID)` | `POST .../swarm/:id/resume` | Limpa a pausa e re-enfileira as tarefas pendentes como jobs novos |
@@ -631,6 +657,7 @@ legados:
 | `TaskID` | `string` | Tarefa (vazio em eventos do swarm inteiro, ex.: pausa geral) |
 | `Title` / `Role` / `Model` | `string` | Descrição da tarefa |
 | `Status` | `SwarmStatus` | Novo status da tarefa/swarm |
+| `Activity` | `string` | Atividade ao vivo da tarefa (mesma nota do `SwarmTask.Activity`) em eventos de tarefa em andamento |
 | `Progress` | `int` | Progresso da tarefa, quando informado |
 | `Error` | `string` | Erro, em transições para `failed` |
 | `ConversationUUID` / `TenantUUID` | `string` | Correlação com a conversa e o tenant |
@@ -650,7 +677,8 @@ if err != nil {
 	log.Fatal(err)
 }
 
-// 2. Acompanhamento ao vivo: eventos de categoria swarm no Monitor.
+// 2. Acompanhamento ao vivo: eventos de categoria swarm no Monitor,
+//    incluindo a atividade atual de cada tarefa (p.Activity).
 stream, _ := client.Monitor.StreamLogs(ctx, nil)
 defer stream.Close()
 go func() {
@@ -659,7 +687,7 @@ go func() {
 			continue
 		}
 		p := evt.Swarm
-		fmt.Printf("[swarm %s] %s %s → %s\n", p.SwarmID, p.TaskID, p.Title, p.Status)
+		fmt.Printf("[swarm %s] %s %s → %s %s\n", p.SwarmID, p.TaskID, p.Title, p.Status, p.Activity)
 	}
 }()
 
@@ -670,13 +698,33 @@ if err != nil {
 }
 fmt.Printf("progresso: %d/%d concluídas\n", state.Counters.Done, state.Counters.Total)
 for _, t := range state.Tasks {
-	fmt.Printf("- %s [%s] %s\n", t.TaskID, t.Status, t.Title)
+	fmt.Printf("- %s [%s] %s %s\n", t.TaskID, t.Status, t.Title, t.Activity)
 }
 for _, h := range state.History {
 	fmt.Printf("  %s %s: %s → %s %s\n", h.Ts, h.TaskID, h.From, h.To, h.Detail)
 }
 
-// 4. Controle: pausar (congela sem gasto), retomar ou parar tudo.
+// 4. Painel à prova de F5: após reload, reidrata o swarm ativo pela conversa
+//    (404 quando não há swarm ativo) e repõe o trace ao vivo de cada tarefa
+//    (persistido no Redis por 24h).
+state, err = client.Swarm.GetSwarmByConversation(ctx, convUUID)
+if apiErr, ok := synapse.AsAPIError(err); ok && apiErr.StatusCode == http.StatusNotFound {
+	// conversa sem swarm ativo — nada a reidratar
+} else if err != nil {
+	log.Fatal(err)
+} else {
+	for _, t := range state.Tasks {
+		trace, err := client.Swarm.GetSwarmTrace(ctx, state.SwarmID, t.TaskID)
+		if err != nil {
+			continue
+		}
+		for _, e := range trace.Entries {
+			fmt.Printf("  [%s] %s %s\n", e.Kind, e.Ts, e.Delta)
+		}
+	}
+}
+
+// 5. Controle: pausar (congela sem gasto), retomar ou parar tudo.
 state, err = client.Swarm.PauseSwarm(ctx, swarmID)
 state, err = client.Swarm.ResumeSwarm(ctx, swarmID)
 state, err = client.Swarm.StopSwarm(ctx, swarmID)

@@ -1678,6 +1678,11 @@ type SwarmTask struct {
 	// Model is the LLM effectively assigned to the subagent.
 	Model  string      `json:"model,omitempty"`
 	Status SwarmStatus `json:"status"`
+	// Activity is a short note of the subagent's CURRENT action (e.g.
+	// "executando sistema_listar_agentes"), refreshed on every subagent step
+	// and cleared when the task finishes — it powers the live activity line of
+	// the swarm panel.
+	Activity string `json:"activity,omitempty"`
 	// JobID is the dispatch job executing this task (correlates with agent_logs).
 	JobID string `json:"job_id,omitempty"`
 	// Report is the subagent's final report, aggregated into the consolidation
@@ -1749,8 +1754,32 @@ type SwarmEventPayload struct {
 	Role             string      `json:"role,omitempty"`
 	Model            string      `json:"model,omitempty"`
 	Status           SwarmStatus `json:"status"`
-	Progress         int         `json:"progress,omitempty"`
-	Error            string      `json:"error,omitempty"`
-	ConversationUUID string      `json:"conversation_uuid,omitempty"`
-	TenantUUID       string      `json:"tenant_uuid,omitempty"`
+	// Activity is a short note of the subagent's CURRENT action (e.g.
+	// "executando sistema_listar_agentes") on live task events — the same note
+	// exposed per task in SwarmTask.Activity.
+	Activity         string `json:"activity,omitempty"`
+	Progress         int    `json:"progress,omitempty"`
+	Error            string `json:"error,omitempty"`
+	ConversationUUID string `json:"conversation_uuid,omitempty"`
+	TenantUUID       string `json:"tenant_uuid,omitempty"`
+}
+
+// SwarmTraceEntry is one entry of a subagent task's execution trace: Kind
+// classifies the entry (e.g. tool call, LLM delta), Delta carries the content
+// fragment and Ts the timestamp.
+type SwarmTraceEntry struct {
+	Kind  string `json:"kind"`
+	Delta string `json:"delta"`
+	Ts    string `json:"ts"`
+}
+
+// SwarmTrace is the execution trace of one swarm task's subagent, persisted
+// server-side in Redis for 24h: the ordered entries the subagent produced
+// while working on the task, for post-mortem inspection and for rehydrating
+// the task's live view after a page reload.
+type SwarmTrace struct {
+	SwarmID   string            `json:"swarm_id"`
+	TaskID    string            `json:"task_id"`
+	Entries   []SwarmTraceEntry `json:"entries"`
+	UpdatedAt string            `json:"updated_at"`
 }
