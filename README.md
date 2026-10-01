@@ -564,6 +564,12 @@ Agentes comuns (não-system) ignoram os dois campos.
 | `PermissionModeAskWhenNeeded` (`ask_when_needed`) | Planos **somente-criação** (classificação determinística no backend) são aplicados automaticamente; planos com update/delete ainda perguntam |
 | `PermissionModeNeverAsk` (`never_ask`) | "Yolo": todo plano finalizado é aplicado **na mesma cadeia**, sem mensagem de autorização. Cada auto-apply é auditado nos logs do agente |
 
+Os dois modos também trafegam no [WebSocket de chat](#websocket-de-chat-chatstream):
+`ChatStreamMessage.PermissionMode`/`SwarmMode` são propagados pelo
+`ChatStream.Send` e serializados no frame de envio como `permission_mode`/
+`swarm_mode` — mesma semântica do REST (a cada mensagem, persistidos por
+conversa, ignorados por agentes não-system).
+
 ### Tipos
 
 `SwarmState` — estado completo do swarm, mantido pelo backend no Redis
@@ -986,6 +992,8 @@ Mesma semântica do monitor (`StreamLogsOptions`):
 | `Message` | `string` | Texto da mensagem |
 | `Context` | `string` | (envio, opcional) contexto adicional |
 | `Attachment` | `*ChatStreamAttachment` | (opcional) anexo: `URL`, `Type` (`image`/`audio`/`document`), `MimeType`, `FileName` |
+| `PermissionMode` | `string` | (envio, opcional) modo de permissão da conversa em system agents (constantes `PermissionMode*` — ver [Modos de permissão e modo swarm no chat](#modos-de-permissão-e-modo-swarm-no-chat)); serializado no frame como `permission_mode` |
+| `SwarmMode` | `string` | (envio, opcional) modo swarm da conversa em system agents (constantes `SwarmMode*` — ver [Modos de permissão e modo swarm no chat](#modos-de-permissão-e-modo-swarm-no-chat)); serializado no frame como `swarm_mode` |
 | `Title` | `string` | (recebimento) título da conversa gerado por IA — presente no turno em que foi gerado. Hoje só agentes de sistema/construtor (ex.: Builder Agent) produzem |
 | `Suggestions` | `[]string` | (recebimento) sugestões geradas por IA para a próxima mensagem do usuário — presentes no turno em que foram geradas. Hoje só agentes de sistema/construtor (ex.: Builder Agent) produzem |
 | `Error` | `string` | (recebimento) erro terminal do job (ex.: agente não encontrado) — quando preenchido, `Message` vem vazia |
