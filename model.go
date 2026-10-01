@@ -1209,6 +1209,10 @@ type ConversationDetail struct {
 type ConversationMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
+	// Kind is an optional classification metadata set by the server (e.g.
+	// "swarm_consolidation" for the swarm's synthetic consolidation turn). It
+	// never changes the message semantics for the model — display-only.
+	Kind string `json:"kind,omitempty"`
 }
 
 // ListConversationsParams holds query parameters for the conversation list endpoint.
