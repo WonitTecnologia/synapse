@@ -815,6 +815,9 @@ type CreateAgentRequest struct {
 	// messages committed at turn boundaries + final). The legacy "off" is no
 	// longer usable: the API normalizes "off"/"" to "final" on write.
 	StreamMode string `json:"stream_mode,omitempty"`
+	// EfficiencyTaggingRequired exige que o atendimento seja classificado ao
+	// final (classificações de eficiência do agente) antes de encerrar/transferir.
+	EfficiencyTaggingRequired bool `json:"efficiency_tagging_required"`
 }
 
 // UpdateAgentRequest is used for both full (PUT) and partial (PATCH) agent updates.
@@ -863,6 +866,9 @@ type UpdateAgentRequest struct {
 	// StreamMode: nil = no change; ""/"off" = normalized to "final" (the legacy
 	// "off" is no longer usable). Values: "final" | "natural".
 	StreamMode *string `json:"stream_mode,omitempty"`
+	// EfficiencyTaggingRequired liga/desliga a exigência de classificação de
+	// eficiência ao final do atendimento.
+	EfficiencyTaggingRequired bool `json:"efficiency_tagging_required"`
 }
 
 // DuplicateAgentRequest is the payload for AgentCase.Duplicate — only the name
@@ -911,8 +917,11 @@ type AgentResponse struct {
 	TransferAgentUUIDs  []string `json:"transfer_agent_uuids"`
 	// StreamMode: "off" | "final" | "natural" (see CreateAgentRequest).
 	StreamMode string `json:"stream_mode"`
-	CreatedAt  string `json:"created_at"`
-	UpdatedAt  string `json:"updated_at"`
+	// EfficiencyTaggingRequired indica se o agente exige classificação de
+	// eficiência ao final do atendimento.
+	EfficiencyTaggingRequired bool   `json:"efficiency_tagging_required"`
+	CreatedAt                 string `json:"created_at"`
+	UpdatedAt                 string `json:"updated_at"`
 }
 
 // ListAgentsResponse is the paginated list of agents for a tenant.
@@ -1786,4 +1795,48 @@ type SwarmTrace struct {
 	TaskID    string            `json:"task_id"`
 	Entries   []SwarmTraceEntry `json:"entries"`
 	UpdatedAt string            `json:"updated_at"`
+}
+
+// ─── Efficiency Classification ────────────────────────────────────────────────
+
+// EfficiencyClassification é uma classificação de eficiência personalizada de um
+// agente: rótulo aplicado ao final do atendimento (ex.: "resolvido", "sem
+// resposta") com a ação automática associada.
+type EfficiencyClassification struct {
+	UUID        string `json:"uuid"`
+	AgentUUID   string `json:"agent_uuid"`
+	Slug        string `json:"slug"`
+	Description string `json:"description"`
+	// Action é a ação automática disparada ao aplicar a classificação:
+	// "transfer" | "close".
+	Action    string `json:"action"`
+	IsActive  bool   `json:"is_active"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
+}
+
+// CreateEfficiencyClassificationRequest is the body for creating an efficiency
+// classification of an agent.
+type CreateEfficiencyClassificationRequest struct {
+	Slug        string `json:"slug"`
+	Description string `json:"description"`
+	// Action: "transfer" | "close".
+	Action   string `json:"action"`
+	IsActive bool   `json:"is_active"`
+}
+
+// UpdateEfficiencyClassificationRequest is the body for updating an efficiency
+// classification (o slug é imutável).
+type UpdateEfficiencyClassificationRequest struct {
+	Description string `json:"description"`
+	// Action: "transfer" | "close".
+	Action   string `json:"action"`
+	IsActive bool   `json:"is_active"`
+}
+
+// EfficiencyClassificationListResponse is the list of efficiency classifications
+// of an agent.
+type EfficiencyClassificationListResponse struct {
+	Items []EfficiencyClassification `json:"classifications"`
+	Total int                        `json:"total"`
 }

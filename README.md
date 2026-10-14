@@ -80,6 +80,7 @@ client, err := synapse.NewClient("seu-token", &synapse.Options{
 | `client.Swarm`       | `SwarmCase`       | Modo Swarm do Construtor — estado (por swarm ou por conversa), trace do subagente e controle (stop/pause/resume) ([ver seção](#swarm-modo-swarm-do-construtor)) |
 | `client.Mcp`         | `McpCase`         | Integrações MCP (Model Context Protocol)         |
 | `client.ExternalApi` | `ExternalApiCase` | APIs externas (HTTP cruas) como tools do agente ([ver seção](#external-apis-api-tools)) |
+| `client.Classification` | `ClassificationCase` | Classificações de eficiência personalizadas por agente ([ver seção](#classificações-de-eficiência)) |
 | `client.Monitor`     | `MonitorCase`     | **WebSocket de monitoramento** — stream de eventos do agente em tempo real ([ver seção](#websocket-de-monitoramento-monitor)) |
 | `client.ChatStream`  | `ChatStreamCase`  | **WebSocket de chat** — conversa bidirecional com agentes em tempo real ([ver seção](#websocket-de-chat-chatstream)) |
 
@@ -767,6 +768,70 @@ parâmetro `file` aparece ao LLM como `string` (URL), com descrição orientando
 que o valor deve ser a URL de um arquivo — por exemplo, a URL de mídia de um
 anexo recebido na conversa. O executor baixa essa URL e a anexa como binário no
 campo de arquivo do multipart (também aceita valores `data:...;base64,...`).
+
+---
+
+## Classificações de Eficiência
+
+A partir da **v0.0.87**, cada agente pode ter **classificações de eficiência
+personalizadas**: rótulos aplicados ao final do atendimento (ex.: "resolvido",
+"sem resposta", "cliente satisfeito"), cada um com uma **ação automática**
+associada — `transfer` (transferir o atendimento) ou `close` (encerrar a
+conversa). O CRUD é feito pelo `client.Classification`, sempre escopado pelo
+UUID do agente:
+
+```go
+// Criar
+c, err := client.Classification.Create(ctx, "agent-uuid", synapse.CreateEfficiencyClassificationRequest{
+    Slug:        "resolvido",
+    Description: "Atendimento resolvido sem escalonamento",
+    Action:      "close",
+    IsActive:    true,
+})
+
+// Listar
+lista, err := client.Classification.List(ctx, "agent-uuid")
+for _, item := range lista.Items {
+    fmt.Println(item.Slug, item.Action, item.IsActive)
+}
+
+// Atualizar (o slug é imutável)
+c, err = client.Classification.Update(ctx, "agent-uuid", c.UUID, synapse.UpdateEfficiencyClassificationRequest{
+    Description: "Resolvido pelo agente",
+    Action:      "close",
+    IsActive:    true,
+})
+
+// Remover
+err = client.Classification.Delete(ctx, "agent-uuid", c.UUID)
+```
+
+| Método | Endpoint | Descrição |
+|---|---|---|
+| `List(ctx, agentUUID)` | `GET /api/agent/:agent_uuid/efficiency-classifications` | Lista as classificações do agente (`EfficiencyClassificationListResponse`: `Items` + `Total`) |
+| `Create(ctx, agentUUID, req)` | `POST /api/agent/:agent_uuid/efficiency-classifications` | Cria uma classificação |
+| `Update(ctx, agentUUID, classificationUUID, req)` | `PUT /api/agent/:agent_uuid/efficiency-classifications/:uuid` | Atualiza descrição, ação e ativação (slug imutável) |
+| `Delete(ctx, agentUUID, classificationUUID)` | `DELETE /api/agent/:agent_uuid/efficiency-classifications/:uuid` | Remove a classificação |
+
+`EfficiencyClassification`:
+
+| Campo | Tipo | Descrição |
+|---|---|---|
+| `UUID` | `string` | Identificador da classificação |
+| `AgentUUID` | `string` | Agente dono da classificação |
+| `Slug` | `string` | Rótulo curto/imutável (definido na criação) |
+| `Description` | `string` | Descrição da classificação |
+| `Action` | `string` | Ação automática ao aplicar a classificação: `transfer` \| `close` |
+| `IsActive` | `bool` | Se a classificação está ativa |
+| `CreatedAt` / `UpdatedAt` | `string` | Timestamps ISO 8601 |
+
+### `efficiency_tagging_required` (flag do agente)
+
+Também a partir da **v0.0.87**, os DTOs de agente (`CreateAgentRequest`,
+`UpdateAgentRequest` e `AgentResponse`) ganham o campo `EfficiencyTaggingRequired`
+(`efficiency_tagging_required`): quando ligado, o atendimento **exige** uma
+classificação de eficiência ao final antes de encerrar/transferir — o agente
+escolhe uma das classificações ativas cadastradas.
 
 ---
 

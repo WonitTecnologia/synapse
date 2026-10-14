@@ -186,6 +186,13 @@ const (
 	pathAgentArtifactCache  = "/api/agent/application/agent/%s/artifact-cache"
 )
 
+// ─── Efficiency Classification paths ──────────────────────────────────────────
+// Formatados com o UUID do agente (e o UUID da classificação, quando aplicável).
+const (
+	pathEfficiencyClassifications = "/api/agent/%s/efficiency-classifications"
+	pathEfficiencyClassification  = "/api/agent/%s/efficiency-classifications/%s"
+)
+
 // ─── Dispatch paths ──────────────────────────────────────────────────────────
 
 const (
