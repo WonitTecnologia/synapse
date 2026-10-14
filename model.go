@@ -817,7 +817,8 @@ type CreateAgentRequest struct {
 	StreamMode string `json:"stream_mode,omitempty"`
 	// EfficiencyTaggingRequired exige que o atendimento seja classificado ao
 	// final (classificações de eficiência do agente) antes de encerrar/transferir.
-	EfficiencyTaggingRequired bool `json:"efficiency_tagging_required"`
+	// nil = desligado (default).
+	EfficiencyTaggingRequired *bool `json:"efficiency_tagging_required,omitempty"`
 }
 
 // UpdateAgentRequest is used for both full (PUT) and partial (PATCH) agent updates.
@@ -867,8 +868,8 @@ type UpdateAgentRequest struct {
 	// "off" is no longer usable). Values: "final" | "natural".
 	StreamMode *string `json:"stream_mode,omitempty"`
 	// EfficiencyTaggingRequired liga/desliga a exigência de classificação de
-	// eficiência ao final do atendimento.
-	EfficiencyTaggingRequired bool `json:"efficiency_tagging_required"`
+	// eficiência ao final do atendimento. nil = sem alteração.
+	EfficiencyTaggingRequired *bool `json:"efficiency_tagging_required,omitempty"`
 }
 
 // DuplicateAgentRequest is the payload for AgentCase.Duplicate — only the name

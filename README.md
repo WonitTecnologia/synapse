@@ -831,7 +831,10 @@ Também a partir da **v0.0.87**, os DTOs de agente (`CreateAgentRequest`,
 `UpdateAgentRequest` e `AgentResponse`) ganham o campo `EfficiencyTaggingRequired`
 (`efficiency_tagging_required`): quando ligado, o atendimento **exige** uma
 classificação de eficiência ao final antes de encerrar/transferir — o agente
-escolhe uma das classificações ativas cadastradas.
+escolhe uma das classificações ativas cadastradas. Nos requests o campo é
+`*bool` com `omitempty`, seguindo o padrão dos demais flags do agente: `nil` =
+desligado no create (default) e `nil` = sem alteração no update; no
+`AgentResponse` é `bool` plano.
 
 ---
 
