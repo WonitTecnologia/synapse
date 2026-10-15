@@ -99,6 +99,10 @@ type Client struct {
 	// chat is billed on the caller tenant's OpenRouter key).
 	SystemAgent SystemAgentCase
 
+	// Swarm covers the Builder system agent's swarm orchestration: state query
+	// and stop/pause/resume control of running swarms.
+	Swarm SwarmCase
+
 	// Mcp covers MCP (Model Context Protocol) server integration management.
 	Mcp McpCase
 
@@ -108,6 +112,10 @@ type Client struct {
 	// ApiArtifact covers API Artifacts — per-agent pipelines of chained external
 	// API tools with per-step prompts and a per-conversation Redis cache.
 	ApiArtifact ApiArtifactCase
+
+	// Classification covers the custom efficiency classifications of an agent
+	// (labels with automatic action applied at the end of an attendance).
+	Classification ClassificationCase
 
 	// Monitor covers the real-time agent event WebSocket (receive-only stream
 	// of chat, tool_call/MCP, RAG and error events for monitoring).
@@ -152,25 +160,27 @@ func NewClient(token string, opts *Options) (*Client, error) {
 	hc := newHTTPClient(token, baseURL, host, timeout)
 
 	return &Client{
-		Auth:        newAuthClient(hc),
-		User:        newUserClient(hc),
-		Tenant:      newTenantClient(hc),
-		Provider:    newProviderClient(hc),
-		Service:     newServiceClient(hc),
-		Google:      newGoogleClient(hc),
-		OpenAI:      newOpenAIClient(hc),
-		Chatvolt:    newChatvoltClient(hc),
-		OpenRouter:  newOpenRouterClient(hc),
-		Collection:  newCollectionClient(hc),
-		Document:    newDocumentClient(hc),
-		Agent:       newAgentClient(hc),
-		SystemAgent: newSystemAgentClient(hc),
-		Mcp:         newMcpClient(hc),
-		ExternalApi: newExternalApiClient(hc),
-		ApiArtifact: newApiArtifactClient(hc),
-		Monitor:     newMonitorClient(hc),
-		ChatStream:  newChatStreamClient(hc),
-		Status:      newStatusClient(hc),
-		Dispatch:    newDispatchClient(hc),
+		Auth:           newAuthClient(hc),
+		User:           newUserClient(hc),
+		Tenant:         newTenantClient(hc),
+		Provider:       newProviderClient(hc),
+		Service:        newServiceClient(hc),
+		Google:         newGoogleClient(hc),
+		OpenAI:         newOpenAIClient(hc),
+		Chatvolt:       newChatvoltClient(hc),
+		OpenRouter:     newOpenRouterClient(hc),
+		Collection:     newCollectionClient(hc),
+		Document:       newDocumentClient(hc),
+		Agent:          newAgentClient(hc),
+		SystemAgent:    newSystemAgentClient(hc),
+		Swarm:          newSwarmClient(hc),
+		Mcp:            newMcpClient(hc),
+		ExternalApi:    newExternalApiClient(hc),
+		ApiArtifact:    newApiArtifactClient(hc),
+		Classification: newClassificationClient(hc),
+		Monitor:        newMonitorClient(hc),
+		ChatStream:     newChatStreamClient(hc),
+		Status:         newStatusClient(hc),
+		Dispatch:       newDispatchClient(hc),
 	}, nil
 }

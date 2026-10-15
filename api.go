@@ -128,6 +128,22 @@ const (
 	// pathSystemAgentChatCancel cancels a queued or running chat job: the worker
 	// drops the job from the queue or aborts the in-flight turn.
 	pathSystemAgentChatCancel = "/api/agent/application/system-agent/chat/cancel"
+	// pathSystemAgentSwarm returns the full state of a Builder swarm (GET; fmt.Sprintf
+	// with the swarm ID). One active swarm per conversation.
+	pathSystemAgentSwarm = "/api/agent/application/system-agent/swarm/%s"
+	// pathSystemAgentSwarmByConversation returns the state of the conversation's
+	// ACTIVE swarm (GET; fmt.Sprintf with the conversation UUID) — same payload
+	// as pathSystemAgentSwarm; 404 when the conversation has no active swarm.
+	pathSystemAgentSwarmByConversation = "/api/agent/application/system-agent/swarm/byconv/%s"
+	// pathSystemAgentSwarmTaskTrace returns the persisted execution trace of one
+	// swarm task's subagent (GET; fmt.Sprintf with the swarm ID and the task ID).
+	pathSystemAgentSwarmTaskTrace = "/api/agent/application/system-agent/swarm/%s/task/%s/trace"
+	// pathSystemAgentSwarmStop/Pause/Resume control a swarm (POST; fmt.Sprintf
+	// with the swarm ID): stop cancels every child job, pause freezes the swarm
+	// without token spend, resume re-enqueues the pending tasks.
+	pathSystemAgentSwarmStop   = "/api/agent/application/system-agent/swarm/%s/stop"
+	pathSystemAgentSwarmPause  = "/api/agent/application/system-agent/swarm/%s/pause"
+	pathSystemAgentSwarmResume = "/api/agent/application/system-agent/swarm/%s/resume"
 )
 
 // ─── Agent Prompt paths ───────────────────────────────────────────────────────
@@ -168,6 +184,13 @@ const (
 	pathAgentArtifact       = "/api/agent/application/agent/%s/artifacts/%s"
 	pathAgentArtifactToggle = "/api/agent/application/agent/%s/artifacts/%s/toggle"
 	pathAgentArtifactCache  = "/api/agent/application/agent/%s/artifact-cache"
+)
+
+// ─── Efficiency Classification paths ──────────────────────────────────────────
+// Formatados com o UUID do agente (e o UUID da classificação, quando aplicável).
+const (
+	pathEfficiencyClassifications = "/api/agent/%s/efficiency-classifications"
+	pathEfficiencyClassification  = "/api/agent/%s/efficiency-classifications/%s"
 )
 
 // ─── Dispatch paths ──────────────────────────────────────────────────────────
