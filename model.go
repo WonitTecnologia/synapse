@@ -791,8 +791,12 @@ type CreateAgentRequest struct {
 	// turn's chat model. Empty (default) = judges run on the turn's LLM. When set
 	// and the decision model is unavailable, judges fall back to the turn's LLM.
 	JudgeDecisionModel string `json:"judge_decision_model,omitempty"`
-	AcceptFiles        *bool `json:"accept_files,omitempty"`
-	FileModel    string `json:"file_model,omitempty"`
+	// JudgeDecisionFallbackModel is the decision model tried when the main one
+	// fails (error, timeout or incomplete answers) before falling back to the
+	// turn's LLM. Empty = no decision fallback.
+	JudgeDecisionFallbackModel string `json:"judge_decision_fallback_model,omitempty"`
+	AcceptFiles                *bool  `json:"accept_files,omitempty"`
+	FileModel                  string `json:"file_model,omitempty"`
 	// Per-content-type model overrides. Empty = fall back to Model (the main,
 	// textual model). When an image/audio attachment arrives, the turn is routed
 	// to the matching model; text-only turns use TextModel when set.
@@ -855,8 +859,10 @@ type UpdateAgentRequest struct {
 	JudgeEnabled *bool `json:"judge_enabled,omitempty"`
 	// JudgeDecisionModel: nil = no change; "" = judges revert to the turn's LLM.
 	JudgeDecisionModel *string `json:"judge_decision_model,omitempty"`
-	AcceptFiles        *bool   `json:"accept_files,omitempty"`
-	FileModel    *string `json:"file_model,omitempty"`
+	// JudgeDecisionFallbackModel: nil = no change; "" = remove the decision fallback.
+	JudgeDecisionFallbackModel *string `json:"judge_decision_fallback_model,omitempty"`
+	AcceptFiles                *bool   `json:"accept_files,omitempty"`
+	FileModel                  *string `json:"file_model,omitempty"`
 	// Per-content-type model overrides. nil = no change; "" = revert to Model.
 	TextModel  *string `json:"text_model,omitempty"`
 	ImageModel *string `json:"image_model,omitempty"`
@@ -913,19 +919,22 @@ type AgentResponse struct {
 	JudgeEnabled        bool     `json:"judge_enabled"`
 	// JudgeDecisionModel is the decision model (OpenRouter Decisions API) used by
 	// the anti-hallucination judges; empty = judges run on the turn's LLM.
-	JudgeDecisionModel  string   `json:"judge_decision_model"`
-	ActivePromptUUID    string   `json:"active_prompt_uuid,omitempty"`
-	AcceptFiles         bool     `json:"accept_files"`
-	FileModel           string   `json:"file_model,omitempty"`
-	TextModel           string   `json:"text_model,omitempty"`
-	ImageModel          string   `json:"image_model,omitempty"`
-	AudioModel          string   `json:"audio_model,omitempty"`
-	TextFallbackModel   string   `json:"text_fallback_model,omitempty"`
-	ImageFallbackModel  string   `json:"image_fallback_model,omitempty"`
-	AudioFallbackModel  string   `json:"audio_fallback_model,omitempty"`
-	QueueEnabled        bool     `json:"queue_enabled"`
-	QueueWindowSeconds  int      `json:"queue_window_seconds"`
-	TransferAgentUUIDs  []string `json:"transfer_agent_uuids"`
+	JudgeDecisionModel string `json:"judge_decision_model"`
+	// JudgeDecisionFallbackModel is the fallback decision model (tried before the
+	// turn's LLM when the main decision model fails); empty = none.
+	JudgeDecisionFallbackModel string   `json:"judge_decision_fallback_model"`
+	ActivePromptUUID           string   `json:"active_prompt_uuid,omitempty"`
+	AcceptFiles                bool     `json:"accept_files"`
+	FileModel                  string   `json:"file_model,omitempty"`
+	TextModel                  string   `json:"text_model,omitempty"`
+	ImageModel                 string   `json:"image_model,omitempty"`
+	AudioModel                 string   `json:"audio_model,omitempty"`
+	TextFallbackModel          string   `json:"text_fallback_model,omitempty"`
+	ImageFallbackModel         string   `json:"image_fallback_model,omitempty"`
+	AudioFallbackModel         string   `json:"audio_fallback_model,omitempty"`
+	QueueEnabled               bool     `json:"queue_enabled"`
+	QueueWindowSeconds         int      `json:"queue_window_seconds"`
+	TransferAgentUUIDs         []string `json:"transfer_agent_uuids"`
 	// StreamMode: "off" | "final" | "natural" (see CreateAgentRequest).
 	StreamMode string `json:"stream_mode"`
 	// EfficiencyTaggingRequired indica se o agente exige classificação de
@@ -1772,12 +1781,12 @@ type SwarmState struct {
 // task; swarm-level events (pause/resume/stop of the whole swarm) omit
 // TaskID.
 type SwarmEventPayload struct {
-	SwarmID          string      `json:"swarm_id"`
-	TaskID           string      `json:"task_id,omitempty"`
-	Title            string      `json:"title,omitempty"`
-	Role             string      `json:"role,omitempty"`
-	Model            string      `json:"model,omitempty"`
-	Status           SwarmStatus `json:"status"`
+	SwarmID string      `json:"swarm_id"`
+	TaskID  string      `json:"task_id,omitempty"`
+	Title   string      `json:"title,omitempty"`
+	Role    string      `json:"role,omitempty"`
+	Model   string      `json:"model,omitempty"`
+	Status  SwarmStatus `json:"status"`
 	// Activity is a short note of the subagent's CURRENT action (e.g.
 	// "executando sistema_listar_agentes") on live task events — the same note
 	// exposed per task in SwarmTask.Activity.
