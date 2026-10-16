@@ -785,8 +785,13 @@ type CreateAgentRequest struct {
 	// re-generates when it cites data absent from the conversation/tools). Omitted
 	// (nil) defaults to enabled on create. Does NOT affect the tool-call parameter
 	// judge, which is always on.
-	JudgeEnabled *bool  `json:"judge_enabled,omitempty"`
-	AcceptFiles  *bool  `json:"accept_files,omitempty"`
+	JudgeEnabled *bool `json:"judge_enabled,omitempty"`
+	// JudgeDecisionModel is a DECISION model (OpenRouter Decisions API, e.g.:
+	// "typesafe/jev-1.14") used by the anti-hallucination judges INSTEAD of the
+	// turn's chat model. Empty (default) = judges run on the turn's LLM. When set
+	// and the decision model is unavailable, judges fall back to the turn's LLM.
+	JudgeDecisionModel string `json:"judge_decision_model,omitempty"`
+	AcceptFiles        *bool `json:"accept_files,omitempty"`
 	FileModel    string `json:"file_model,omitempty"`
 	// Per-content-type model overrides. Empty = fall back to Model (the main,
 	// textual model). When an image/audio attachment arrives, the turn is routed
@@ -847,8 +852,10 @@ type UpdateAgentRequest struct {
 	ApiArtifactsEnabled *bool `json:"api_artifacts_enabled,omitempty"`
 	// JudgeEnabled toggles the response grounding judge. nil = no change. Does NOT
 	// affect the always-on tool-call parameter judge.
-	JudgeEnabled *bool   `json:"judge_enabled,omitempty"`
-	AcceptFiles  *bool   `json:"accept_files,omitempty"`
+	JudgeEnabled *bool `json:"judge_enabled,omitempty"`
+	// JudgeDecisionModel: nil = no change; "" = judges revert to the turn's LLM.
+	JudgeDecisionModel *string `json:"judge_decision_model,omitempty"`
+	AcceptFiles        *bool   `json:"accept_files,omitempty"`
 	FileModel    *string `json:"file_model,omitempty"`
 	// Per-content-type model overrides. nil = no change; "" = revert to Model.
 	TextModel  *string `json:"text_model,omitempty"`
@@ -904,6 +911,9 @@ type AgentResponse struct {
 	ThoughtsEnabled     bool     `json:"thoughts_enabled"`
 	ApiArtifactsEnabled bool     `json:"api_artifacts_enabled"`
 	JudgeEnabled        bool     `json:"judge_enabled"`
+	// JudgeDecisionModel is the decision model (OpenRouter Decisions API) used by
+	// the anti-hallucination judges; empty = judges run on the turn's LLM.
+	JudgeDecisionModel  string   `json:"judge_decision_model"`
 	ActivePromptUUID    string   `json:"active_prompt_uuid,omitempty"`
 	AcceptFiles         bool     `json:"accept_files"`
 	FileModel           string   `json:"file_model,omitempty"`
