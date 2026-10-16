@@ -23,6 +23,11 @@ type OpenRouterCase interface {
 	// Set freeOnly=true to filter for free-tier models only.
 	ListModels(ctx context.Context, freeOnly bool) (*OpenRouterListModelsResponse, error)
 
+	// ListDecisionModels returns the DECISION models available on OpenRouter
+	// (Decisions API, e.g.: typesafe/jev-1.14). They are not in the default
+	// catalog — OpenRouter only exposes them via output_modalities=decisions.
+	ListDecisionModels(ctx context.Context) (*OpenRouterListModelsResponse, error)
+
 	// ListModelTiers returns the service tiers (priority, flex) available for a
 	// model, with per-tier raw OpenRouter prices (USD per token, as strings) and
 	// providers. A nil tier means the model does not offer it.
@@ -127,6 +132,14 @@ func (o *openrouterClient) ListModels(ctx context.Context, freeOnly bool) (*Open
 	var out OpenRouterListModelsResponse
 	if err := o.http.get(ctx, pathOpenRouterModels, q, &out); err != nil {
 		return nil, fmt.Errorf("synapse/openrouter.ListModels: %w", err)
+	}
+	return &out, nil
+}
+
+func (o *openrouterClient) ListDecisionModels(ctx context.Context) (*OpenRouterListModelsResponse, error) {
+	var out OpenRouterListModelsResponse
+	if err := o.http.get(ctx, pathOpenRouterDecisionModels, nil, &out); err != nil {
+		return nil, fmt.Errorf("synapse/openrouter.ListDecisionModels: %w", err)
 	}
 	return &out, nil
 }
