@@ -824,10 +824,6 @@ type CreateAgentRequest struct {
 	// messages committed at turn boundaries + final). The legacy "off" is no
 	// longer usable: the API normalizes "off"/"" to "final" on write.
 	StreamMode string `json:"stream_mode,omitempty"`
-	// EfficiencyTaggingRequired exige que o atendimento seja classificado ao
-	// final (classificações de eficiência do agente) antes de encerrar/transferir.
-	// nil = desligado (default).
-	EfficiencyTaggingRequired *bool `json:"efficiency_tagging_required,omitempty"`
 }
 
 // UpdateAgentRequest is used for both full (PUT) and partial (PATCH) agent updates.
@@ -880,9 +876,6 @@ type UpdateAgentRequest struct {
 	// StreamMode: nil = no change; ""/"off" = normalized to "final" (the legacy
 	// "off" is no longer usable). Values: "final" | "natural".
 	StreamMode *string `json:"stream_mode,omitempty"`
-	// EfficiencyTaggingRequired liga/desliga a exigência de classificação de
-	// eficiência ao final do atendimento. nil = sem alteração.
-	EfficiencyTaggingRequired *bool `json:"efficiency_tagging_required,omitempty"`
 }
 
 // DuplicateAgentRequest is the payload for AgentCase.Duplicate — only the name
@@ -937,11 +930,8 @@ type AgentResponse struct {
 	TransferAgentUUIDs         []string `json:"transfer_agent_uuids"`
 	// StreamMode: "off" | "final" | "natural" (see CreateAgentRequest).
 	StreamMode string `json:"stream_mode"`
-	// EfficiencyTaggingRequired indica se o agente exige classificação de
-	// eficiência ao final do atendimento.
-	EfficiencyTaggingRequired bool   `json:"efficiency_tagging_required"`
-	CreatedAt                 string `json:"created_at"`
-	UpdatedAt                 string `json:"updated_at"`
+	CreatedAt  string `json:"created_at"`
+	UpdatedAt  string `json:"updated_at"`
 }
 
 // ListAgentsResponse is the paginated list of agents for a tenant.

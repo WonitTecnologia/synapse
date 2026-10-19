@@ -9,8 +9,9 @@ import (
 
 // ClassificationCase manages the custom efficiency classifications of an agent:
 // labels applied at the end of an attendance (e.g. "resolved", "no answer"),
-// each with an automatic action (transfer/close). Used together with the agent
-// flag efficiency_tagging_required.
+// each with an automatic action (transfer/close). The classification applied to
+// each action is chosen by the agent's decision model (Jev) at runtime — not by
+// the conversation LLM.
 type ClassificationCase interface {
 	// List returns all efficiency classifications of an agent.
 	List(ctx context.Context, agentUUID string) (*EfficiencyClassificationListResponse, error)
