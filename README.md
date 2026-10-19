@@ -825,16 +825,15 @@ err = client.Classification.Delete(ctx, "agent-uuid", c.UUID)
 | `IsActive` | `bool` | Se a classificação está ativa |
 | `CreatedAt` / `UpdatedAt` | `string` | Timestamps ISO 8601 |
 
-### `efficiency_tagging_required` (flag do agente)
+### Tag custom decidida pelo modelo de decisão
 
-Também a partir da **v0.0.87**, os DTOs de agente (`CreateAgentRequest`,
-`UpdateAgentRequest` e `AgentResponse`) ganham o campo `EfficiencyTaggingRequired`
-(`efficiency_tagging_required`): quando ligado, o atendimento **exige** uma
-classificação de eficiência ao final antes de encerrar/transferir — o agente
-escolhe uma das classificações ativas cadastradas. Nos requests o campo é
-`*bool` com `omitempty`, seguindo o padrão dos demais flags do agente: `nil` =
-desligado no create (default) e `nil` = sem alteração no update; no
-`AgentResponse` é `bool` plano.
+A partir da **v0.0.90**, a classificação customizada aplicada a cada
+transferência/encerramento é **escolhida pelo modelo de decisão do agente**
+(Jev, via Decisions API) — não mais pela LLM da conversa. O modelo de decisão
+lê a conversa e o motivo da ação e casa com a descrição das classificações
+ativas; quando nenhuma combina, a ação segue só com a classificação do sistema.
+A flag `efficiency_tagging_required` (introduzida na v0.0.87) **foi removida**
+dos DTOs de agente — sem escolha delegada à LLM, não há o que obrigar.
 
 ---
 
