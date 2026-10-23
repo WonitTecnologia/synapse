@@ -962,6 +962,23 @@ for _, log := range resp.Logs {
 }
 ```
 
+#### Memória de API da conversa (v0.0.91+)
+
+`client.Agent.ListConsultas` retorna a "memória de API" da conversa: os
+resultados das chamadas de API externas do agente cacheados nas últimas 24h
+(Redis, por conversa) — a mesma fonte que alimenta a seção
+`[CONSULTAS RECENTES]` do contexto do agente. É o que o agente pode re-usar
+sem re-chamar as ferramentas (ex.: ids reais devolvidos por uma busca).
+
+```go
+mem, err := client.Agent.ListConsultas(ctx, "agent-uuid", synapse.ListAgentLogsParams{
+    ExternalID: "Whats20261022000608", // ou ConversationUUID
+})
+for _, c := range mem.Consultas {
+    fmt.Println(c.Tool, c.ObtainedAt) // resposta cacheada (params + response)
+}
+```
+
 #### `AgentLogItem` (v0.0.41+)
 
 | Campo | Tipo | Descrição |

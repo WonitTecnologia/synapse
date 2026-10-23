@@ -1327,6 +1327,21 @@ type ListAgentLogsParams struct {
 	Size             int
 }
 
+// ListConsultasItem is one cached external API response of the conversation
+// (the "API memory" that feeds the agent's [CONSULTAS RECENTES] section).
+type ListConsultasItem struct {
+	Tool       string         `json:"tool"`
+	Params     map[string]any `json:"params,omitempty"`
+	Response   string         `json:"response"`
+	ObtainedAt string         `json:"obtained_at"`
+}
+
+// ListConsultasResponse is the conversation's API memory (last 24h).
+type ListConsultasResponse struct {
+	Consultas []ListConsultasItem `json:"consultas"`
+	Total     int                 `json:"total"`
+}
+
 // AgentLogStats holds aggregated statistics for agent usage.
 type AgentLogStats struct {
 	AgentUUID             string              `json:"agent_uuid"`

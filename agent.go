@@ -104,6 +104,12 @@ type AgentCase interface {
 	// conversation. Optionally filter by conversation UUID or external ID.
 	LogsStats(ctx context.Context, agentUUID string, params ListAgentLogsParams) (*AgentLogStats, error)
 
+	// ListConsultas returns the conversation's API memory: cached responses of the
+	// agent's external API calls from the last 24h (what feeds the
+	// [CONSULTAS RECENTES] context section). Filterable by conversation UUID or
+	// external ID.
+	ListConsultas(ctx context.Context, agentUUID string, params ListAgentLogsParams) (*ListConsultasResponse, error)
+
 	// SearchThoughts returns the thoughts (working memory) stored by the agent during a
 	// conversation. conversationUUID is required; query filters by keyword in content/label
 	// (case-insensitive, empty returns all). The thoughts are Redis-backed, per-conversation,
@@ -338,6 +344,22 @@ func (a *agentClient) LogsStats(ctx context.Context, agentUUID string, params Li
 	var out AgentLogStats
 	if err := a.http.get(ctx, path, q, &out); err != nil {
 		return nil, fmt.Errorf("synapse/agent.LogsStats: %w", err)
+	}
+	return &out, nil
+}
+
+func (a *agentClient) ListConsultas(ctx context.Context, agentUUID string, params ListAgentLogsParams) (*ListConsultasResponse, error) {
+	q := url.Values{}
+	if params.ConversationUUID != "" {
+		q.Set("conversation_uuid", params.ConversationUUID)
+	}
+	if params.ExternalID != "" {
+		q.Set("external_id", params.ExternalID)
+	}
+	path := fmt.Sprintf(pathAgentConsultas, agentUUID)
+	var out ListConsultasResponse
+	if err := a.http.get(ctx, path, q, &out); err != nil {
+		return nil, fmt.Errorf("synapse/agent.ListConsultas: %w", err)
 	}
 	return &out, nil
 }
