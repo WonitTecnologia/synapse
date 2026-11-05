@@ -801,11 +801,6 @@ type CreateAgentRequest struct {
 	// tools) for this agent. When enabled, each active artifact becomes ONE tool
 	// and the APIs that are pipeline nodes stop appearing as individual tools.
 	ApiArtifactsEnabled *bool `json:"api_artifacts_enabled,omitempty"`
-	// JudgeEnabled toggles the response grounding judge (re-checks each reply and
-	// re-generates when it cites data absent from the conversation/tools). Omitted
-	// (nil) defaults to enabled on create. Does NOT affect the tool-call parameter
-	// judge, which is always on.
-	JudgeEnabled *bool `json:"judge_enabled,omitempty"`
 	// EfficiencyDecisionModel is the DECISION model used only to choose efficiency
 	// tags after a transfer or conversation close (OpenRouter Decisions API).
 	EfficiencyDecisionModel string `json:"efficiency_decision_model,omitempty"`
@@ -881,9 +876,6 @@ type UpdateAgentRequest struct {
 	ThoughtsEnabled *bool `json:"thoughts_enabled,omitempty"`
 	// ApiArtifactsEnabled toggles API Artifacts (pipelines of chained external API tools).
 	ApiArtifactsEnabled *bool `json:"api_artifacts_enabled,omitempty"`
-	// JudgeEnabled toggles the response grounding judge. nil = no change. Does NOT
-	// affect the always-on tool-call parameter judge.
-	JudgeEnabled *bool `json:"judge_enabled,omitempty"`
 	// EfficiencyDecisionModel: nil = no change; "" = use the server default for tagging.
 	EfficiencyDecisionModel *string `json:"efficiency_decision_model,omitempty"`
 	// EfficiencyDecisionFallbackModel: nil = no change; "" = remove the tagging fallback.
@@ -954,7 +946,6 @@ type AgentResponse struct {
 	ApiToolUUIDs        []string `json:"api_tool_uuids"`
 	ThoughtsEnabled     bool     `json:"thoughts_enabled"`
 	ApiArtifactsEnabled bool     `json:"api_artifacts_enabled"`
-	JudgeEnabled        bool     `json:"judge_enabled"`
 	// Decision models are used only for efficiency tagging, never for guardrails or judges.
 	EfficiencyDecisionModel         string   `json:"efficiency_decision_model"`
 	EfficiencyDecisionFallbackModel string   `json:"efficiency_decision_fallback_model"`
