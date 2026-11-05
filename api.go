@@ -83,6 +83,7 @@ const (
 	pathOpenRouterSincronismo         = "/api/catalog/application/openrouter/sincronismo"
 	pathOpenRouterModels              = "/api/catalog/application/openrouter/models"
 	pathOpenRouterDecisionModels      = "/api/catalog/application/openrouter/models/decisions"
+	pathOpenRouterGuardrailModels     = "/api/catalog/application/openrouter/models/guardrails"
 	pathOpenRouterModelsEndpoints     = "/api/catalog/application/openrouter/models/endpoints"
 	pathOpenRouterEmbeddingModels     = "/api/catalog/application/openrouter/models/embedding"
 	pathOpenRouterAnalyticsMonthly    = "/api/catalog/application/openrouter/analytics/monthly"

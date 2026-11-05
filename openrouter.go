@@ -28,6 +28,9 @@ type OpenRouterCase interface {
 	// catalog — OpenRouter only exposes them via output_modalities=decisions.
 	ListDecisionModels(ctx context.Context) (*OpenRouterListModelsResponse, error)
 
+	// ListGuardrailModels returns the curated guardrail allowlist and defaults per modality.
+	ListGuardrailModels(ctx context.Context) (*GuardrailModelsResponse, error)
+
 	// ListModelTiers returns the service tiers (priority, flex) available for a
 	// model, with per-tier raw OpenRouter prices (USD per token, as strings) and
 	// providers. A nil tier means the model does not offer it.
@@ -140,6 +143,14 @@ func (o *openrouterClient) ListDecisionModels(ctx context.Context) (*OpenRouterL
 	var out OpenRouterListModelsResponse
 	if err := o.http.get(ctx, pathOpenRouterDecisionModels, nil, &out); err != nil {
 		return nil, fmt.Errorf("synapse/openrouter.ListDecisionModels: %w", err)
+	}
+	return &out, nil
+}
+
+func (o *openrouterClient) ListGuardrailModels(ctx context.Context) (*GuardrailModelsResponse, error) {
+	var out GuardrailModelsResponse
+	if err := o.http.get(ctx, pathOpenRouterGuardrailModels, nil, &out); err != nil {
+		return nil, fmt.Errorf("synapse/openrouter.ListGuardrailModels: %w", err)
 	}
 	return &out, nil
 }

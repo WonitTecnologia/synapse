@@ -834,6 +834,29 @@ lê a conversa e o motivo da ação e casa com a descrição das classificaçõe
 ativas; quando nenhuma combina, a ação segue só com a classificação do sistema.
 A flag `efficiency_tagging_required` (introduzida na v0.0.87) **foi removida**
 dos DTOs de agente — sem escolha delegada à LLM, não há o que obrigar.
+Os campos `EfficiencyDecisionModel` e `EfficiencyDecisionFallbackModel`
+(`efficiency_decision_model` e `efficiency_decision_fallback_model`) configuram
+esse modelo exclusivamente para o tagueamento. Os antigos campos
+`JudgeDecisionModel` e `JudgeDecisionFallbackModel` permanecem apenas como
+aliases de escrita depreciados por uma release e nunca mais alimentam os juízes.
+
+### Guard-rail de entrada e saída
+
+`GuardrailInputEnabled` valida a mensagem antes do modelo principal;
+`GuardrailOutputEnabled` valida a resposta final e sua coerência com as ações
+executadas. Cada modalidade tem modelo e fallback próprios, com allowlist e
+validação de compatibilidade no servidor:
+
+| Campo | JSON |
+|---|---|
+| `GuardrailTextModel` / `GuardrailTextFallbackModel` | `guardrail_text_model` / `guardrail_text_fallback_model` |
+| `GuardrailImageModel` / `GuardrailImageFallbackModel` | `guardrail_image_model` / `guardrail_image_fallback_model` |
+| `GuardrailAudioModel` / `GuardrailAudioFallbackModel` | `guardrail_audio_model` / `guardrail_audio_fallback_model` |
+
+O guard-rail não executa tools. Seu veredito pode liberar o turno, responder ao
+usuário sem chamar o modelo principal, solicitar uma correção ou substituir a
+resposta por texto seguro. Validações determinísticas de sintaxe e de ações
+continuam ativas independentemente do modelo escolhido.
 
 ---
 
