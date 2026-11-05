@@ -419,6 +419,26 @@ type OpenRouterListModelsResponse struct {
 	Total  int                   `json:"total"`
 }
 
+type GuardrailModelSpec struct {
+	ID              string   `json:"id"`
+	Name            string   `json:"name"`
+	InputModalities []string `json:"input_modalities"`
+}
+
+type GuardrailModelDefaults struct {
+	TextModel          string `json:"text_model"`
+	TextFallbackModel  string `json:"text_fallback_model"`
+	ImageModel         string `json:"image_model"`
+	ImageFallbackModel string `json:"image_fallback_model"`
+	AudioModel         string `json:"audio_model"`
+	AudioFallbackModel string `json:"audio_fallback_model"`
+}
+
+type GuardrailModelsResponse struct {
+	Models   []GuardrailModelSpec   `json:"models"`
+	Defaults GuardrailModelDefaults `json:"defaults"`
+}
+
 // OpenRouterEmbeddingModel describes a single embedding model returned live from the OpenRouter API.
 type OpenRouterEmbeddingModel struct {
 	ID              string   `json:"id"`
@@ -786,14 +806,25 @@ type CreateAgentRequest struct {
 	// (nil) defaults to enabled on create. Does NOT affect the tool-call parameter
 	// judge, which is always on.
 	JudgeEnabled *bool `json:"judge_enabled,omitempty"`
-	// JudgeDecisionModel is a DECISION model (OpenRouter Decisions API, e.g.:
-	// "typesafe/jev-1.14") used by the anti-hallucination judges INSTEAD of the
-	// turn's chat model. Empty (default) = judges run on the turn's LLM. When set
-	// and the decision model is unavailable, judges fall back to the turn's LLM.
+	// EfficiencyDecisionModel is the DECISION model used only to choose efficiency
+	// tags after a transfer or conversation close (OpenRouter Decisions API).
+	EfficiencyDecisionModel string `json:"efficiency_decision_model,omitempty"`
+	// EfficiencyDecisionFallbackModel is tried when the primary tagging model is unavailable.
+	EfficiencyDecisionFallbackModel string `json:"efficiency_decision_fallback_model,omitempty"`
+	// GuardrailInputEnabled validates user messages before they reach the main model.
+	GuardrailInputEnabled *bool `json:"guardrail_input_enabled,omitempty"`
+	// GuardrailOutputEnabled validates replies and their consistency with executed actions.
+	GuardrailOutputEnabled *bool `json:"guardrail_output_enabled,omitempty"`
+	// Guardrail models and their per-modality fallbacks. Empty uses the server defaults.
+	GuardrailTextModel          string `json:"guardrail_text_model,omitempty"`
+	GuardrailTextFallbackModel  string `json:"guardrail_text_fallback_model,omitempty"`
+	GuardrailImageModel         string `json:"guardrail_image_model,omitempty"`
+	GuardrailImageFallbackModel string `json:"guardrail_image_fallback_model,omitempty"`
+	GuardrailAudioModel         string `json:"guardrail_audio_model,omitempty"`
+	GuardrailAudioFallbackModel string `json:"guardrail_audio_fallback_model,omitempty"`
+	// Deprecated: use EfficiencyDecisionModel. Kept for one compatibility release.
 	JudgeDecisionModel string `json:"judge_decision_model,omitempty"`
-	// JudgeDecisionFallbackModel is the decision model tried when the main one
-	// fails (error, timeout or incomplete answers) before falling back to the
-	// turn's LLM. Empty = no decision fallback.
+	// Deprecated: use EfficiencyDecisionFallbackModel.
 	JudgeDecisionFallbackModel string `json:"judge_decision_fallback_model,omitempty"`
 	AcceptFiles                *bool  `json:"accept_files,omitempty"`
 	FileModel                  string `json:"file_model,omitempty"`
@@ -853,9 +884,23 @@ type UpdateAgentRequest struct {
 	// JudgeEnabled toggles the response grounding judge. nil = no change. Does NOT
 	// affect the always-on tool-call parameter judge.
 	JudgeEnabled *bool `json:"judge_enabled,omitempty"`
-	// JudgeDecisionModel: nil = no change; "" = judges revert to the turn's LLM.
+	// EfficiencyDecisionModel: nil = no change; "" = use the server default for tagging.
+	EfficiencyDecisionModel *string `json:"efficiency_decision_model,omitempty"`
+	// EfficiencyDecisionFallbackModel: nil = no change; "" = remove the tagging fallback.
+	EfficiencyDecisionFallbackModel *string `json:"efficiency_decision_fallback_model,omitempty"`
+	// Guardrail flags: nil = no change.
+	GuardrailInputEnabled  *bool `json:"guardrail_input_enabled,omitempty"`
+	GuardrailOutputEnabled *bool `json:"guardrail_output_enabled,omitempty"`
+	// Guardrail models: nil = no change; "" = revert to the server default for that role.
+	GuardrailTextModel          *string `json:"guardrail_text_model,omitempty"`
+	GuardrailTextFallbackModel  *string `json:"guardrail_text_fallback_model,omitempty"`
+	GuardrailImageModel         *string `json:"guardrail_image_model,omitempty"`
+	GuardrailImageFallbackModel *string `json:"guardrail_image_fallback_model,omitempty"`
+	GuardrailAudioModel         *string `json:"guardrail_audio_model,omitempty"`
+	GuardrailAudioFallbackModel *string `json:"guardrail_audio_fallback_model,omitempty"`
+	// Deprecated: use EfficiencyDecisionModel.
 	JudgeDecisionModel *string `json:"judge_decision_model,omitempty"`
-	// JudgeDecisionFallbackModel: nil = no change; "" = remove the decision fallback.
+	// Deprecated: use EfficiencyDecisionFallbackModel.
 	JudgeDecisionFallbackModel *string `json:"judge_decision_fallback_model,omitempty"`
 	AcceptFiles                *bool   `json:"accept_files,omitempty"`
 	FileModel                  *string `json:"file_model,omitempty"`
@@ -910,24 +955,29 @@ type AgentResponse struct {
 	ThoughtsEnabled     bool     `json:"thoughts_enabled"`
 	ApiArtifactsEnabled bool     `json:"api_artifacts_enabled"`
 	JudgeEnabled        bool     `json:"judge_enabled"`
-	// JudgeDecisionModel is the decision model (OpenRouter Decisions API) used by
-	// the anti-hallucination judges; empty = judges run on the turn's LLM.
-	JudgeDecisionModel string `json:"judge_decision_model"`
-	// JudgeDecisionFallbackModel is the fallback decision model (tried before the
-	// turn's LLM when the main decision model fails); empty = none.
-	JudgeDecisionFallbackModel string   `json:"judge_decision_fallback_model"`
-	ActivePromptUUID           string   `json:"active_prompt_uuid,omitempty"`
-	AcceptFiles                bool     `json:"accept_files"`
-	FileModel                  string   `json:"file_model,omitempty"`
-	TextModel                  string   `json:"text_model,omitempty"`
-	ImageModel                 string   `json:"image_model,omitempty"`
-	AudioModel                 string   `json:"audio_model,omitempty"`
-	TextFallbackModel          string   `json:"text_fallback_model,omitempty"`
-	ImageFallbackModel         string   `json:"image_fallback_model,omitempty"`
-	AudioFallbackModel         string   `json:"audio_fallback_model,omitempty"`
-	QueueEnabled               bool     `json:"queue_enabled"`
-	QueueWindowSeconds         int      `json:"queue_window_seconds"`
-	TransferAgentUUIDs         []string `json:"transfer_agent_uuids"`
+	// Decision models are used only for efficiency tagging, never for guardrails or judges.
+	EfficiencyDecisionModel         string   `json:"efficiency_decision_model"`
+	EfficiencyDecisionFallbackModel string   `json:"efficiency_decision_fallback_model"`
+	GuardrailInputEnabled           bool     `json:"guardrail_input_enabled"`
+	GuardrailOutputEnabled          bool     `json:"guardrail_output_enabled"`
+	GuardrailTextModel              string   `json:"guardrail_text_model,omitempty"`
+	GuardrailTextFallbackModel      string   `json:"guardrail_text_fallback_model,omitempty"`
+	GuardrailImageModel             string   `json:"guardrail_image_model,omitempty"`
+	GuardrailImageFallbackModel     string   `json:"guardrail_image_fallback_model,omitempty"`
+	GuardrailAudioModel             string   `json:"guardrail_audio_model,omitempty"`
+	GuardrailAudioFallbackModel     string   `json:"guardrail_audio_fallback_model,omitempty"`
+	ActivePromptUUID                string   `json:"active_prompt_uuid,omitempty"`
+	AcceptFiles                     bool     `json:"accept_files"`
+	FileModel                       string   `json:"file_model,omitempty"`
+	TextModel                       string   `json:"text_model,omitempty"`
+	ImageModel                      string   `json:"image_model,omitempty"`
+	AudioModel                      string   `json:"audio_model,omitempty"`
+	TextFallbackModel               string   `json:"text_fallback_model,omitempty"`
+	ImageFallbackModel              string   `json:"image_fallback_model,omitempty"`
+	AudioFallbackModel              string   `json:"audio_fallback_model,omitempty"`
+	QueueEnabled                    bool     `json:"queue_enabled"`
+	QueueWindowSeconds              int      `json:"queue_window_seconds"`
+	TransferAgentUUIDs              []string `json:"transfer_agent_uuids"`
 	// StreamMode: "off" | "final" | "natural" (see CreateAgentRequest).
 	StreamMode string `json:"stream_mode"`
 	CreatedAt  string `json:"created_at"`
