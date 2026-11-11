@@ -742,6 +742,41 @@ em `Parameters` (`ExternalApiParamDef`) vira uma propriedade do JSON Schema da
 tool e é interpolado como `{{nome}}` na URL, nos headers ou no corpo, conforme o
 `Location`.
 
+### Contrato de operação (`operation_contract`)
+
+`OperationContract` descreve explicitamente o significado da operação, sem inferir
+seu comportamento pelo nome da ferramenta. O campo é opcional para preservar as
+APIs já cadastradas; em atualização, omitir mantém o contrato atual e enviar `{}`
+o remove.
+
+Operações iniciais:
+
+- `scheduling.create`: cria um agendamento. Exige `SuccessPath` e `SuccessValue`;
+  `ProtocolPath` identifica o protocolo retornado.
+- `scheduling.list_availability`: consulta disponibilidade. Exige
+  `AvailabilityPath` e `AvailableWhen` (`non_empty` ou `true`).
+
+```go
+OperationContract: &synapse.OperationContract{
+    Domain: "scheduling",
+    Verb:   "create",
+    Entity: "appointment",
+    Evidence: synapse.EvidenceContract{
+        SuccessPath:  "$.status",
+        SuccessValue: "created",
+        ProtocolPath: "$.protocol",
+    },
+}
+```
+
+Para atualizar sem alterar o contrato existente, omita `OperationContract` (`nil`).
+Para removê-lo explicitamente, envie `&synapse.OperationContract{}` — o JSON
+emitido será exatamente `{}`. `success_value` é omitido quando não informado;
+valores `false` e `0` são preservados.
+
+O contrato apenas declara a operação e a evidência; a ativação da validação
+genérica depende das próximas etapas do `synapse-api`.
+
 ### Tipo de corpo (`body_type`)
 
 O campo `BodyType` (`body_type`) — presente em `CreateExternalApiRequest`,

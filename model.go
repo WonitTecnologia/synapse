@@ -1550,8 +1550,9 @@ type CreateExternalApiRequest struct {
 	BodyTemplate string `json:"body_template,omitempty"`
 	// BodyType selects how the executor builds the request body:
 	// none|json|multipart|form_urlencoded|raw. Empty = json (backwards compatible).
-	BodyType   string                `json:"body_type,omitempty"`
-	Parameters []ExternalApiParamDef `json:"parameters,omitempty"`
+	BodyType          string                `json:"body_type,omitempty"`
+	Parameters        []ExternalApiParamDef `json:"parameters,omitempty"`
+	OperationContract *OperationContract    `json:"operation_contract,omitempty"`
 	// EmbedModel condenses large responses via ephemeral RAG. Empty = no condensing.
 	EmbedModel string `json:"embed_model,omitempty"`
 	// EmbedThreshold is the char count above which the response is condensed (0 = default 8000).
@@ -1561,19 +1562,20 @@ type CreateExternalApiRequest struct {
 
 // UpdateExternalApiRequest is the body for partially updating an external API tool.
 type UpdateExternalApiRequest struct {
-	Name           *string                `json:"name,omitempty"`
-	Description    *string                `json:"description,omitempty"`
-	UsagePrompt    *string                `json:"usage_prompt,omitempty"`
-	Method         *string                `json:"method,omitempty"`
-	URL            *string                `json:"url,omitempty"`
-	Headers        *map[string]string     `json:"headers,omitempty"`
-	BodyTemplate   *string                `json:"body_template,omitempty"`
-	BodyType       *string                `json:"body_type,omitempty"`
-	Parameters     *[]ExternalApiParamDef `json:"parameters,omitempty"`
-	EmbedModel     *string                `json:"embed_model,omitempty"`
-	EmbedThreshold *int                   `json:"embed_threshold,omitempty"`
-	TimeoutSecs    *int                   `json:"timeout_secs,omitempty"`
-	IsActive       *bool                  `json:"is_active,omitempty"`
+	Name              *string                `json:"name,omitempty"`
+	Description       *string                `json:"description,omitempty"`
+	UsagePrompt       *string                `json:"usage_prompt,omitempty"`
+	Method            *string                `json:"method,omitempty"`
+	URL               *string                `json:"url,omitempty"`
+	Headers           *map[string]string     `json:"headers,omitempty"`
+	BodyTemplate      *string                `json:"body_template,omitempty"`
+	BodyType          *string                `json:"body_type,omitempty"`
+	Parameters        *[]ExternalApiParamDef `json:"parameters,omitempty"`
+	OperationContract *OperationContract     `json:"operation_contract,omitempty"`
+	EmbedModel        *string                `json:"embed_model,omitempty"`
+	EmbedThreshold    *int                   `json:"embed_threshold,omitempty"`
+	TimeoutSecs       *int                   `json:"timeout_secs,omitempty"`
+	IsActive          *bool                  `json:"is_active,omitempty"`
 }
 
 // ExternalApiResponse describes a registered external API tool.
@@ -1588,14 +1590,15 @@ type ExternalApiResponse struct {
 	Headers      map[string]string `json:"headers"`
 	BodyTemplate string            `json:"body_template"`
 	// BodyType is the request body mode: none|json|multipart|form_urlencoded|raw.
-	BodyType       string                `json:"body_type"`
-	Parameters     []ExternalApiParamDef `json:"parameters"`
-	EmbedModel     string                `json:"embed_model"`
-	EmbedThreshold int                   `json:"embed_threshold"`
-	TimeoutSecs    int                   `json:"timeout_secs"`
-	IsActive       bool                  `json:"is_active"`
-	CreatedAt      string                `json:"created_at"`
-	UpdatedAt      string                `json:"updated_at"`
+	BodyType          string                `json:"body_type"`
+	Parameters        []ExternalApiParamDef `json:"parameters"`
+	OperationContract OperationContract     `json:"operation_contract"`
+	EmbedModel        string                `json:"embed_model"`
+	EmbedThreshold    int                   `json:"embed_threshold"`
+	TimeoutSecs       int                   `json:"timeout_secs"`
+	IsActive          bool                  `json:"is_active"`
+	CreatedAt         string                `json:"created_at"`
+	UpdatedAt         string                `json:"updated_at"`
 }
 
 // ExternalApiListResponse is the list of external API tools for a tenant.
