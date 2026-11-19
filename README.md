@@ -1296,3 +1296,7 @@ func main() {
     fmt.Println("Transcrição:", transcription.Response)
 }
 ```
+
+### Versão de execução do agente
+
+Agentes novos e duplicados começam em `v1`. Use `UpdateAgentRequest.RuntimeVersion` com `"v2"` ou `"v1"` em `Agent.Update` ou `Agent.Patch` para selecionar o motor de novas conversas. A versão salva vem em `AgentResponse.RuntimeVersion`. Conversas em andamento continuam na versão de criação.
