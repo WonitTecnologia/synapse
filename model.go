@@ -913,6 +913,8 @@ type UpdateAgentRequest struct {
 	// StreamMode: nil = no change; ""/"off" = normalized to "final" (the legacy
 	// "off" is no longer usable). Values: "final" | "natural".
 	StreamMode *string `json:"stream_mode,omitempty"`
+	// RuntimeVersion selects the runtime for new conversations. Nil preserves the current setting.
+	RuntimeVersion *string `json:"runtime_version,omitempty"`
 }
 
 // DuplicateAgentRequest is the payload for AgentCase.Duplicate — only the name
@@ -970,9 +972,10 @@ type AgentResponse struct {
 	QueueWindowSeconds              int      `json:"queue_window_seconds"`
 	TransferAgentUUIDs              []string `json:"transfer_agent_uuids"`
 	// StreamMode: "off" | "final" | "natural" (see CreateAgentRequest).
-	StreamMode string `json:"stream_mode"`
-	CreatedAt  string `json:"created_at"`
-	UpdatedAt  string `json:"updated_at"`
+	StreamMode     string `json:"stream_mode"`
+	RuntimeVersion string `json:"runtime_version"`
+	CreatedAt      string `json:"created_at"`
+	UpdatedAt      string `json:"updated_at"`
 }
 
 // ListAgentsResponse is the paginated list of agents for a tenant.
